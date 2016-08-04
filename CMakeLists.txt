@@ -71,6 +71,15 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 
+
+# Build tools
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
+add_executable(bin_vocabulary
+tools/bin_vocabulary.cc)
+target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+
+
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
@@ -98,4 +107,6 @@ target_link_libraries(mono_kitti ${PROJECT_NAME})
 add_executable(mono_cland
 Examples/Monocular/mono_cland.cc)
 target_link_libraries(mono_cland ${PROJECT_NAME})
+
+
 
