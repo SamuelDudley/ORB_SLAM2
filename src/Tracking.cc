@@ -21,8 +21,8 @@
 
 #include "Tracking.h"
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/features2d.hpp>
 
 #include"ORBmatcher.h"
 #include"FrameDrawer.h"
@@ -235,7 +235,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, const cv::Mat &mIFrameTransRot) // could pass in EKF info here...
 {
     mImGray = im;
 
@@ -255,9 +255,11 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     }
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+    	// initial frame
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mIFrameTransRot); //add optional EKF pose info
     else
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+    	// we are already running...
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mIFrameTransRot);
 
     Track();
 
@@ -423,15 +425,23 @@ void Tracking::Track()
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
-                cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
-                mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
-                mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
-                mVelocity = mCurrentFrame.mTcw*LastTwc;
+            	if(!mCurrentFrame.mIFrameTransRot.empty()) // use the supplied inter-frame velocity info if available
+            	{
+            		mVelocity = mCurrentFrame.mIFrameTransRot;
+
+            	}
+            	else // assume linear rotation and translation velocity model
+            	{
+					cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
+					mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
+					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+					mVelocity = mCurrentFrame.mTcw*LastTwc;
+            	}
             }
             else
                 mVelocity = cv::Mat();
 
-            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw); //set the camera pose
 
             // Clean temporal point matches
             for(int i=0; i<mCurrentFrame.N; i++)
@@ -606,6 +616,8 @@ void Tracking::MonocularInitialization()
             mpInitializer = static_cast<Initializer*>(NULL);
             return;
         }
+
+        // Here we define the first point...
 
         cv::Mat Rcw; // Current Camera Rotation
         cv::Mat tcw; // Current Camera Translation
@@ -872,8 +884,8 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points
     UpdateLastFrame();
 
-    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
-
+    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw); //if the velocity model was better we would have moved a more sensible distance...
+    //^^ sets mCurrentFrame mTcw
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
     // Project points seen in previous frame
