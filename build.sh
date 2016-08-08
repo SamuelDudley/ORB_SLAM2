@@ -17,11 +17,14 @@ make -j4
 
 cd ../../../
 
-echo "Uncompress vocabulary ..."
+#echo "Uncompress vocabulary ..."
 
-cd Vocabulary
-tar -xf ORBvoc.txt.tar.gz
-cd ..
+#cd Vocabulary
+#tar -xf ORBvoc.txt.tar.gz
+#cd ..
+
+#echo "Converting vocabulary to binary"
+#./tools/bin_vocabulary
 
 echo "Configuring and building ORB_SLAM2 ..."
 
@@ -32,5 +35,4 @@ make -j4
 
 cd ..
 
-echo "Converting vocabulary to binary"
-./tools/bin_vocabulary
+
