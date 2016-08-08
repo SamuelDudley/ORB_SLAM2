@@ -24,8 +24,7 @@
 #include<fstream>
 #include<chrono>
 #include<iomanip>
-
-#include<opencv2/core/core.hpp>
+#include<opencv2/core.hpp>
 
 #include"System.h"
 
@@ -38,7 +37,7 @@ int main(int argc, char **argv)
 {
     if(argc != 4)
     {
-        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        cerr << endl << "Usage: ./mono_cland path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
 
@@ -62,11 +61,21 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat im;
+    cv::Mat mIFrameTransRot;
+
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
         im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+
+        // Supply optional inter-frame rotation and translation
+        // TODO: pull this info from the Autopilot EKF and produce the matrix
+        mIFrameTransRot = cv::Mat(); //cv::Mat::eye(4,4,CV_32F);
+
         double tframe = vTimestamps[ni];
+        // if we set the mIFrameTransRot to something other than empty it will be used for mVelocity in Tracking.cc.
+        // we need to set it to be the rotation and translation between this frame and the last in camera world coordinate system.
+
 
         if(im.empty())
         {
@@ -81,7 +90,16 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe);
+        cv::Mat cameraPose = SLAM.TrackMonocular(im,tframe,mIFrameTransRot);
+
+//        if (!cameraPose.empty())
+//        {
+//        	//TODO: extract rotation matrix (first three col and rows)
+//        	//TODO: extract translation (last col, first three rows)
+//        	//TODO: convert to EKF NED coordinate system
+//        	//TODO: send back to Autopilot for EKF fusion
+//        }
+
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
