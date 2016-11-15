@@ -55,6 +55,8 @@ public:
         STEREO=1,
         RGBD=2
     };
+    bool cameraHasJumped = false;
+    bool GBARunning = true;
 
 public:
 
@@ -89,6 +91,9 @@ public:
     // It waits until all threads have finished.
     // This function must be called before saving the trajectory.
     void Shutdown();
+
+    int GetStatus();
+    bool CameraHasJumped();
 
     // Save camera trajectory in the TUM RGB-D dataset format.
     // Call first Shutdown()

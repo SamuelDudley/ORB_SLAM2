@@ -27,7 +27,7 @@
 #include<opencv2/core.hpp>
 
 #include"System.h"
-
+#include"mavlink/common/mavlink.h"
 using namespace std;
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
@@ -61,7 +61,14 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat im;
+
     cv::Mat mIFrameTransRot;
+    int trackingStatus = -1;
+    bool cameraHasJumped = false;
+
+    cv::Mat cameraPose = cv::Mat::eye(4,4,CV_32F);
+    cv::Mat cameraRotation = cv::Mat::eye(3,3,CV_32F);
+    cv::Mat cameraTranslation(1,3,CV_32F);
 
     for(int ni=0; ni<nImages; ni++)
     {
@@ -71,11 +78,10 @@ int main(int argc, char **argv)
         // Supply optional inter-frame rotation and translation
         // TODO: pull this info from the Autopilot EKF and produce the matrix
         mIFrameTransRot = cv::Mat(); //cv::Mat::eye(4,4,CV_32F);
-
-        double tframe = vTimestamps[ni];
         // if we set the mIFrameTransRot to something other than empty it will be used for mVelocity in Tracking.cc.
         // we need to set it to be the rotation and translation between this frame and the last in camera world coordinate system.
-
+        // TODO: ask about the best method to do this step
+        double tframe = vTimestamps[ni];
 
         if(im.empty())
         {
@@ -90,15 +96,26 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the image to the SLAM system
-        cv::Mat cameraPose = SLAM.TrackMonocular(im,tframe,mIFrameTransRot);
 
-//        if (!cameraPose.empty())
-//        {
-//        	//TODO: extract rotation matrix (first three col and rows)
-//        	//TODO: extract translation (last col, first three rows)
-//        	//TODO: convert to EKF NED coordinate system
-//        	//TODO: send back to Autopilot for EKF fusion
-//        }
+
+        cameraPose = SLAM.TrackMonocular(im,tframe,mIFrameTransRot);
+        trackingStatus = SLAM.GetStatus();
+        cameraHasJumped = SLAM.CameraHasJumped();
+
+        if (!cameraPose.empty())
+        {
+//        	cout << "cameraPose: " << cameraPose << endl << endl;
+        	cameraPose.rowRange(0,3).colRange(0,3).copyTo(cameraRotation.rowRange(0,3).colRange(0,3));
+        	//extract rotation matrix (first three col and rows)
+//        	cout << "cameraRotation: " << cameraRotation << endl << endl;
+        	cameraPose.rowRange(0,3).col(3).copyTo(cameraTranslation);
+        	//extract translation (last col, first three rows)
+        	cout << "cameraTranslation: " << cameraTranslation << endl << endl;
+        	cout << "trackingStatus: " << trackingStatus << endl << endl;
+        	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
+        	//TODO: convert to NED coordinate system and then a fake gps msg
+        	//TODO: send back to Autopilot for EKF fusion
+        }
 
 
 #ifdef COMPILEDWITHC11

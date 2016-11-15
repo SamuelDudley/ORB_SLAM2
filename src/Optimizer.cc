@@ -831,8 +831,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
             VSim3->setEstimate(Siw);
         }
 
-        if(pKF==pLoopKF)
-            VSim3->setFixed(true);
+        if(pKF->mnId==0) //if(pKF==pLoopKF) //pKF->mnId==0
+        	VSim3->setFixed(true);
 
         VSim3->setId(nIDi);
         VSim3->setMarginalized(false);

@@ -268,6 +268,9 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
 
 void Tracking::Track()
 {
+	mapHasBeenOptimised = false;
+	matchJump = false;
+
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -438,8 +441,9 @@ void Tracking::Track()
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
             	}
             }
-            else
+            else // this occurs on loop closure
                 mVelocity = cv::Mat();
+
 
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw); //set the camera pose
 
@@ -696,6 +700,7 @@ void Tracking::CreateInitialMapMonocular()
     cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
     Optimizer::GlobalBundleAdjustemnt(mpMap,20);
+    mapHasBeenOptimised = true;
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -1508,6 +1513,7 @@ bool Tracking::Relocalization()
                 if(nGood>=50)
                 {
                     bMatch = true;
+                    matchJump = true;
                     break;
                 }
             }

@@ -217,6 +217,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
 
 cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, const cv::Mat &mIFrameTransRot)
 {
+	cameraHasJumped = false;
     if(mSensor!=MONOCULAR)
     {
         cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
@@ -256,8 +257,44 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, const
         mbReset = false;
     }
     }
+    // if GBA was running last frame and now it is finished
+    if(GBARunning && mpLoopCloser->isFinishedGBA())
+    {
+    	// assume the camera has jumped
+    	cameraHasJumped = true;
+    }
 
+
+    GBARunning = mpLoopCloser->isRunningGBA();
+
+//    if(mpTracker->mapHasBeenOptimised)
+//	{
+//		cout << "mapHasBeenOptimised jump" << endl;
+//
+//	}
+
+//    if(mpTracker->matchJump)
+//	{
+//		cout << "match jump" << endl;
+//
+//	}
+
+
+    if(cameraHasJumped || mpLoopCloser->optimizerRan || mpTracker->matchJump || mpTracker->mapHasBeenOptimised)
+    {
+    	cameraHasJumped = true;
+    	//cout << "Camera has jumped!"<< endl;
+    }
+
+
+    if(mpLoopCloser->optimizerRan)
+    {
+//    	cout << "loop closer jump" << endl;
+    	mpLoopCloser->optimizerRan = false;
+
+    }
     return mpTracker->GrabImageMonocular(im,timestamp,mIFrameTransRot);
+
 }
 
 void System::ActivateLocalizationMode()
@@ -276,6 +313,16 @@ void System::Reset()
 {
     unique_lock<mutex> lock(mMutexReset);
     mbReset = true;
+}
+
+int System::GetStatus()
+{
+    return mpTracker->mState;
+}
+
+bool System::CameraHasJumped()
+{
+	return cameraHasJumped;
 }
 
 void System::Shutdown()

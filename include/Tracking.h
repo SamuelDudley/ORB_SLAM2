@@ -86,6 +86,9 @@ public:
         LOST=3
     };
 
+    bool mapHasBeenOptimised = false;
+    bool matchJump = false;
+
     eTrackingState mState;
     eTrackingState mLastProcessedState;
 
