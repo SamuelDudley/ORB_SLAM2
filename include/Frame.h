@@ -79,6 +79,11 @@ public:
         return mRwc.clone();
     }
 
+    // Returns inverse of rotation
+    inline cv::Mat GetRotation(){
+    	return mRcw.clone();
+    }
+
     // Check if a MapPoint is in the frustum of the camera
     // and fill variables of the MapPoint to be used by the tracking
     bool isInFrustum(MapPoint* pMP, float viewingCosLimit);

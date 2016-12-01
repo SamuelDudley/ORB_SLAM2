@@ -25,6 +25,7 @@
 #include<chrono>
 #include<iomanip>
 #include<opencv2/core.hpp>
+#include "Converter.h"
 
 #include"System.h"
 #include"mavlink/common/mavlink.h"
@@ -32,6 +33,8 @@ using namespace std;
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
+
+bool ExtractCurrentPosRotation(ORB_SLAM2::System &SLAM, vector<float> &pos, vector<float> &euler);
 
 int main(int argc, char **argv)
 {
@@ -70,10 +73,14 @@ int main(int argc, char **argv)
     cv::Mat cameraRotation = cv::Mat::eye(3,3,CV_32F);
     cv::Mat cameraTranslation(1,3,CV_32F);
 
+    vector<float> pos(3);
+    vector<float> euler(3);
+
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
         im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        // grab the image from the camera
 
         // Supply optional inter-frame rotation and translation
         // TODO: pull this info from the Autopilot EKF and produce the matrix
@@ -115,6 +122,12 @@ int main(int argc, char **argv)
         	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
         	//TODO: convert to NED coordinate system and then a fake gps msg
         	//TODO: send back to Autopilot for EKF fusion
+        }
+
+        if (ExtractCurrentPosRotation(SLAM, pos, euler))
+        {
+        	cout << "x=" << pos[0] << ", y=" << pos[1] << ", z=" << pos[2] << ", ";
+        	cout << "roll=" << euler[0] << ", pitch=" << euler[1] << ", yaw=" << euler[2] << endl;
         }
 
 
@@ -190,3 +203,25 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
         vstrImageFilenames[i] = strPrefixLeft + ss.str() + ".png";
     }
 }
+
+bool ExtractCurrentPosRotation(ORB_SLAM2::System &SLAM, vector<float> &pos, vector<float> &euler)
+{
+	cv::Mat curPos = SLAM.GetTracker()->mCurrentFrame.GetCameraCenter();
+	cv::Mat curRotation = SLAM.GetTracker()->mCurrentFrame.GetRotation();
+
+	if (!curPos.empty() && !curRotation.empty())
+	{
+		pos[0] = curPos.at<float>(0,2);
+		pos[1] = -curPos.at<float>(0,0);
+		pos[2] = -curPos.at<float>(0,1);
+
+		vector<float> q = ORB_SLAM2::Converter::toQuaternion(curRotation);
+		euler = ORB_SLAM2::Converter::toEuler(q);
+
+		return true;
+	}
+
+	return false;
+
+}
+

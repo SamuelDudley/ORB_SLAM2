@@ -115,6 +115,11 @@ public:
     // SaveMap(const string &filename);
     // LoadMap(const string &filename);
 
+    Tracking* GetTracker()
+    {
+    	return mpTracker;
+    }
+
 private:
 
     // Input sensor

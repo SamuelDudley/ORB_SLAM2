@@ -439,6 +439,10 @@ void Tracking::Track()
 					mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
 					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
+//					cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
+//					tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
+					cout << "mVelocity: " << mVelocity << endl << endl;
+//					cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
             	}
             }
             else // this occurs on loop closure
@@ -485,7 +489,7 @@ void Tracking::Track()
         // Reset if the camera get lost soon after initialization
         if(mState==LOST)
         {
-            if(mpMap->KeyFramesInMap()<=5)
+            if(mpMap->KeyFramesInMap()<=10)
             {
                 cout << "Track lost soon after initialisation, reseting..." << endl;
                 mpSystem->Reset();
@@ -889,6 +893,11 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points
     UpdateLastFrame();
 
+    /////trying to stop the world z from going spastic... does not allow initilisation
+//    cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
+//    cv::Mat tmp2 = mVelocity*mLastFrame.mTcw;
+    // tmp.row(2).col(3).copyTo(tmp2.row(2).col(3));
+    ////
     mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw); //if the velocity model was better we would have moved a more sensible distance...
     //^^ sets mCurrentFrame mTcw
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
@@ -913,6 +922,11 @@ bool Tracking::TrackWithMotionModel()
 
     // Optimize frame pose with all matches
     Optimizer::PoseOptimization(&mCurrentFrame);
+
+    /////// trying to stop the world z from going spastic... does not allow initilisation
+//    cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
+//    tmp.row(2).col(3).copyTo(mCurrentFrame.mTcw.row(2).col(3));
+    //////
 
     // Discard outliers
     int nmatchesMap = 0;

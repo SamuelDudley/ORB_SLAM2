@@ -20,6 +20,7 @@
 
 
 #include "Converter.h"
+#include <math.h>
 
 namespace ORB_SLAM2
 {
@@ -146,6 +147,22 @@ std::vector<float> Converter::toQuaternion(const cv::Mat &M)
     v[3] = q.w();
 
     return v;
+}
+
+std::vector<float> Converter::toEuler(const std::vector<float> &q)
+{
+    std::vector<float> e(3);
+    float q0 = q[3];
+    float q1 = q[0];
+    float q2 = q[1];
+    float q3 = q[2];
+
+    float PI = 3.14159265;
+    e[0] = atan2(2*(q0*q3+q1*q2), q0*q0-q1*q1+q2*q2-q3*q3) * 180 / PI;
+    e[1] = asin(-2*(q0*q1-q2*q3)) * 180 / PI;
+    e[2] = atan2(2*(q0*q2+q1*q3), q0*q0-q1*q1-q2*q2+q3*q3) * 180 / PI;
+
+    return e;
 }
 
 } //namespace ORB_SLAM
