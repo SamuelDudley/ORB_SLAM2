@@ -441,7 +441,7 @@ void Tracking::Track()
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
 //					cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
 //					tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
-					cout << "mVelocity: " << mVelocity << endl << endl;
+//					cout << "mVelocity: " << mVelocity << endl << endl;
 //					cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
             	}
             }
