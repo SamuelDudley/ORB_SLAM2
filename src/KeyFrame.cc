@@ -53,7 +53,8 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
             mGrid[i][j] = F.mGrid[i][j];
     }
 
-    SetPose(F.mTcw);    
+    SetPose(F.mTcw);
+    SetAPPose(F.mAPPoseNED);
 }
 
 void KeyFrame::ComputeBoW()
@@ -65,6 +66,18 @@ void KeyFrame::ComputeBoW()
         // We assume the vocabulary tree has 6 levels, change the 4 otherwise
         mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
     }
+}
+
+void KeyFrame::SetAPPose(const cv::Mat &APPoseNED_)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    APPoseNED_.copyTo(mAPPoseNED);
+}
+
+cv::Mat KeyFrame::GetAPPose()
+{
+    unique_lock<mutex> lock(mMutexPose); // not needed as the AP data is not updated after being written at this stage
+    return mAPPoseNED.clone();
 }
 
 void KeyFrame::SetPose(const cv::Mat &Tcw_)

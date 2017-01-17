@@ -29,6 +29,7 @@
 #include"Converter.h"
 #include"Map.h"
 #include"Initializer.h"
+#include<math.h>
 
 #include"Optimizer.h"
 #include"PnPsolver.h"
@@ -235,7 +236,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, const cv::Mat &mIFrameTransRot) // could pass in EKF info here...
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot) // could pass in EKF info here...
 {
     mImGray = im;
 
@@ -256,10 +257,10 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
     	// initial frame
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mIFrameTransRot); //add optional EKF pose info
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot); //add optional EKF pose info
     else
     	// we are already running...
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mIFrameTransRot);
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot);
 
     Track();
 
@@ -441,7 +442,7 @@ void Tracking::Track()
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
 //					cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
 //					tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
-//					cout << "mVelocity: " << mVelocity << endl << endl;
+//					cout << endl << "mVelocity: " << mVelocity << endl << endl;
 //					cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
             	}
             }
@@ -717,10 +718,50 @@ void Tracking::CreateInitialMapMonocular()
         return;
     }
 
+    // FIXME: // FIXME: hack to change the initial baseline to meters !!!
+    float invMedianDepth_old = invMedianDepth;
+    // The displacement of the camera will depend on its orientation. This is not an issue if the the initial key frame is at [0,0,0].t()
+    // we use world coordinates just to be sure...
+    cv::Mat translationCameraInitial = pKFini->GetCameraCenter();
+    float x1 = translationCameraInitial.at<float>(0,0);
+    float y1 = translationCameraInitial.at<float>(1,0);
+    float z1 = translationCameraInitial.at<float>(2,0);
+
+    cv::Mat translationCameraCurrent = pKFcur->GetCameraCenter();
+    float x2 = translationCameraCurrent.at<float>(0,0);
+    float y2 = translationCameraCurrent.at<float>(1,0);
+    float z2 = translationCameraCurrent.at<float>(2,0);
+
+    // work out how far the camera thinks it has moved between the key frames (this measure has arbitrary scale and depends on the initialization...)
+    float cameraDisplacement = sqrt(pow(x2-x1, 2.0)+pow(y2-y1, 2.0)+pow(z2-z1, 2.0));
+
+    cv::Mat poseAPInitial = pKFini->GetAPPose();
+    float x1_AP = poseAPInitial.at<float>(0,3);
+    float y1_AP = poseAPInitial.at<float>(1,3);
+    float z1_AP = poseAPInitial.at<float>(2,3);
+
+    cv::Mat poseAPCurrent = pKFcur->GetAPPose();
+    float x2_AP = poseAPCurrent.at<float>(0,3);
+	float y2_AP = poseAPCurrent.at<float>(1,3);
+	float z2_AP = poseAPCurrent.at<float>(2,3);
+
+	// work out how far the autopilot has moved between the key frames (we are using NED values so its all in meters)
+	float apDisplacement = sqrt(pow(x2_AP-x1_AP, 2.0)+pow(y2_AP-y1_AP, 2.0)+pow(z2_AP-z1_AP, 2.0));
+
+	// calculate the scale factor required to get the camera units up to meters
+    float ratioAPToCameraDisplacement = apDisplacement/cameraDisplacement;
+
+
+    invMedianDepth = ratioAPToCameraDisplacement;
+    cout << "invMedianDepth was going to be " << invMedianDepth_old << " but is now " << invMedianDepth << endl;
+
+    getchar();
+    // FIXME: hack to change the initial baseline to meters !!!
+
     // Scale initial baseline
     cv::Mat Tc2w = pKFcur->GetPose();
-    Tc2w.col(3).rowRange(0,3) = Tc2w.col(3).rowRange(0,3)*invMedianDepth;
-    pKFcur->SetPose(Tc2w);
+    Tc2w.col(3).rowRange(0,3) = Tc2w.col(3).rowRange(0,3)*invMedianDepth;  // FIXME: hack to change the initial baseline to meters
+    pKFcur->SetPose(Tc2w); // FIXME: doing this assumes that the initial keyframe is at orb world [0,0,0].t()
 
     // Scale points
     vector<MapPoint*> vpAllMapPoints = pKFini->GetMapPointMatches();
@@ -729,7 +770,7 @@ void Tracking::CreateInitialMapMonocular()
         if(vpAllMapPoints[iMP])
         {
             MapPoint* pMP = vpAllMapPoints[iMP];
-            pMP->SetWorldPos(pMP->GetWorldPos()*invMedianDepth);
+            pMP->SetWorldPos(pMP->GetWorldPos()*invMedianDepth); // FIXME: hack to change the initial baseline to meters
         }
     }
 

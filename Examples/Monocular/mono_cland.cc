@@ -152,6 +152,8 @@ int main(int argc, char **argv)
     int trackingStatus = -1;
     bool cameraHasJumped = false;
 
+    cv::Mat mAPPoseNED;
+
     static const float PI = 3.14159265;
 
     static const float radToDeg = 180.0/PI;
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
 		autopilotPoseCurrent.at<float>(1,3) = currentEast;
 		autopilotPoseCurrent.at<float>(2,3) = currentDown;
 
-
+		mAPPoseNED = autopilotPoseCurrent.clone();
 
 //		cout << "autopilot pose" << endl << autopilotPoseCurrent << endl;
 
@@ -249,7 +251,7 @@ int main(int argc, char **argv)
         // Pass the image to the SLAM system
 
 
-        cameraPose = SLAM.TrackMonocular(im,tframe,mIFrameTransRot);
+        cameraPose = SLAM.TrackMonocular(im, tframe, mAPPoseNED, mIFrameTransRot);
         trackingStatus = SLAM.GetStatus();
         cameraHasJumped = SLAM.CameraHasJumped();
 
@@ -271,26 +273,36 @@ int main(int argc, char **argv)
         		cout << "initial autopilot" << autopilotRotationInitial << autopilotTranslationInitial << endl;
         	}
 
-
+        	/* ---Rotation--- */
+        	// rotation ap to camera frame
         	cv::Mat autopilotInCameraFrameRotation = autopilotRotationCurrent*mAxisAlignmentAutopilotToCamera*autopilotRotationInitial.inv()*mAxisAlignmentAutopilotToCamera;
 
-        	// ask about this one... we arnt just doing the inverse of above because we are using the camera as the datasource not the AP.
+        	// inverse of above, camera to ap frame
+        	// we are not just doing the inverse of above because we are using the camera as the datasource not the AP.
+        	// in order to make this valid replace autopilotInCameraFrameRotation with the current camera rotation estimate
+
         	cv::Mat cameraInAutopilotFrameRotation = autopilotInCameraFrameRotation*mAxisAlignmentAutopilotToCamera.inv()*autopilotRotationInitial*mAxisAlignmentAutopilotToCamera.inv();
 
-        	// translation seems pretty broken... okay.. its only because of the double to float overflow
-        	cout << "autopilotTranslationCurrent =" <<endl<< autopilotTranslationCurrent << endl;
+        	/* ---Translation--- */
+        	// translation ap to orb world
         	cv::Mat translationOrbWorldFrameNED = mAxisAlignmentAutopilotToCamera*autopilotRotationInitial*autopilotTranslationCurrent.t();
-        	cv::Mat translationCameraFrameNED = autopilotRotationCurrent*autopilotRotationInitial.inv()*-translationOrbWorldFrameNED;
-//        	cout << "translationOrbWorldFrameNED =" <<endl<< translationOrbWorldFrameNED << endl;
-//        	cout << "translationCameraFrameNED =" <<endl<< translationCameraFrameNED << endl;
 
-        	// if we replace translationCameraFrameNED with an estimate we can return the NED estimate back to the AP
+        	// translation ap to orb camera (values will change with the current orentation of the camera)
+        	cv::Mat translationCameraFrameNED = autopilotRotationCurrent*autopilotRotationInitial.inv()*-translationOrbWorldFrameNED;
+
+        	// if we replace translationCameraFrameNED with a camera orb world estimate we can return the NED estimate back to the AP
         	cv::Mat NEDPos = autopilotRotationInitial.inv()*mAxisAlignmentAutopilotToCamera.inv()*-(autopilotRotationInitial*autopilotRotationCurrent.inv()*translationCameraFrameNED);
 
+
+
+        	// generate some euler angles to check what is going on
         	vector<float> a = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation));
         	vector<float> b = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraRotationCurrent));
         	vector<float> c = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraInAutopilotFrameRotation));
 
+        	cout << "autopilotTranslationCurrent =" <<endl<< autopilotTranslationCurrent << endl;
+//			cout << "translationOrbWorldFrameNED =" <<endl<< translationOrbWorldFrameNED << endl;
+//			cout << "translationCameraFrameNED =" <<endl<< translationCameraFrameNED << endl;
         	cout << "AP roll in orb =" << a[0]*radToDeg << ", pitch=" << a[1]*radToDeg << ", yaw=" << a[2]*radToDeg << endl;
         	cout << "orb roll in ap =" << c[0]*radToDeg << ", pitch=" << c[1]*radToDeg << ", yaw=" << -c[2]*radToDeg << endl;
         	cout << "orb roll       =" << b[0]*radToDeg << ", pitch=" << b[1]*radToDeg << ", yaw=" << b[2]*radToDeg << endl << endl << endl;
@@ -299,7 +311,6 @@ int main(int argc, char **argv)
 //        	cout << "trackingStatus: " << trackingStatus << endl << endl;
 //        	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
 
-
 //			cout << "roll=" << eulera[0]* 180 / PI << ", pitch=" << eulera[1]* 180 / PI << ", yaw=" << eulera[2]* 180 / PI << endl;
 //			vector<float> euleraa ={-eulera[0], -eulera[1], -eulera[2]};
 //			cv::Mat rotation_new = getRotationMatrix(euleraa);
@@ -307,11 +318,6 @@ int main(int argc, char **argv)
 //			cout << "rotation new=" << rotation_new << endl;
 //			eulerb = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(rotation_new));
 //			cout << "new roll=" << eulerb[0]* 180 / PI << ", pitch=" << eulerb[1]* 180 / PI << ", yaw=" << eulerb[2]* 180 / PI << endl;
-
-
-
-
-
 
         }
 

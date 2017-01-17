@@ -55,13 +55,16 @@ public:
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const cv::Mat &mIFrameTransRot);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 
     // Compute Bag of Words representation.
     void ComputeBoW();
+
+    // Set the AP pose. Body frame rotation right hand aircraft standard (x direction of nose, y out right wing, z down). Translation is global frame NED (North East Down)
+    void SetAPPose(cv::Mat mAPPoseNED_);
 
     // Set the camera pose.
     void SetPose(cv::Mat Tcw);
@@ -133,6 +136,10 @@ public:
     // Far points are inserted as in the monocular case from 2 views.
     float mThDepth;
 
+
+    // FIXME: There are far better ways to insert this AP data
+    // Autopilot pose data
+    cv::Mat mAPPoseNED;
     // Ardupilot EKF interframe translation and rotation matrix
     cv::Mat mIFrameTransRot;
 

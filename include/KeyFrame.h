@@ -45,6 +45,12 @@ class KeyFrame
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
 
+    // FIXME: give these fns mathematically 'correct' names
+    // AP functions
+    void SetAPPose(const cv::Mat &APPose);
+    cv::Mat GetAPPose();
+
+
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
     cv::Mat GetPose();
@@ -119,6 +125,8 @@ public:
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
+
+    cv::Mat mAPPoseNED; // FIXME: Hack to add AP pose info to keyframes
 
     static long unsigned int nNextId;
     long unsigned int mnId;
