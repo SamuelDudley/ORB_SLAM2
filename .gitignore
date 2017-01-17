@@ -5,3 +5,6 @@ Thirdparty/DBoW2/build/
 Thirdparty/g2o/build
 lib/
 *~
+/KeyFrameTrajectory.txt
+/.cproject
+/.project
