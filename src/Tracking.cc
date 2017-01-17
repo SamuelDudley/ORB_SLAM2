@@ -739,7 +739,7 @@ void Tracking::CreateInitialMapMonocular()
     // work out how far the camera thinks it has moved between the key frames (this measure has arbitrary scale and depends on the initialization...)
     float cameraDisplacement = sqrt(pow(x2-x1, 2.0)+pow(y2-y1, 2.0)+pow(z2-z1, 2.0));
 
-    cv::Mat poseAPInitial = pKFini->GetAPPose();
+    poseAPInitial = pKFini->GetAPPose();
     float x1_AP = poseAPInitial.at<float>(0,3);
     float y1_AP = poseAPInitial.at<float>(1,3);
     float z1_AP = poseAPInitial.at<float>(2,3);

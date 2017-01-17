@@ -95,6 +95,9 @@ public:
     // Scale factor
     float ratioAPToCameraScale;
 
+    // AP pose associated with the first keyframe
+    cv::Mat poseAPInitial;
+
     // Input sensor
     int mSensor;
 
