@@ -644,8 +644,12 @@ void Tracking::MonocularInitialization()
             }
 
             // Set Frame Poses
+            // The initial frame is set as an identity matrix (no rotation or translation)
             mInitialFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
+
+            // Build the matrix for the second frame
             cv::Mat Tcw = cv::Mat::eye(4,4,CV_32F);
+            // Copy the rotation which has been updated by the initializer
             Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));
             tcw.copyTo(Tcw.rowRange(0,3).col(3));
             mCurrentFrame.SetPose(Tcw);
@@ -749,11 +753,13 @@ void Tracking::CreateInitialMapMonocular()
 	float apDisplacement = sqrt(pow(x2_AP-x1_AP, 2.0)+pow(y2_AP-y1_AP, 2.0)+pow(z2_AP-z1_AP, 2.0));
 
 	// calculate the scale factor required to get the camera units up to meters
-    float ratioAPToCameraDisplacement = apDisplacement/cameraDisplacement;
+	// store the scale factor so we can use it later
+	// ratioAPToCameraScale is defined in Tracking.h
+    ratioAPToCameraScale = apDisplacement/cameraDisplacement;
 
 
-    invMedianDepth = ratioAPToCameraDisplacement;
-    cout << "invMedianDepth was going to be " << invMedianDepth_old << " but is now " << invMedianDepth << endl;
+//    invMedianDepth = ratioAPToCameraScale;
+    cout << "invMedianDepth was going to be " << invMedianDepth_old << " but is now " << ratioAPToCameraScale << endl;
 
     getchar();
     // FIXME: hack to change the initial baseline to meters !!!
@@ -934,11 +940,6 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points
     UpdateLastFrame();
 
-    /////trying to stop the world z from going spastic... does not allow initilisation
-//    cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
-//    cv::Mat tmp2 = mVelocity*mLastFrame.mTcw;
-    // tmp.row(2).col(3).copyTo(tmp2.row(2).col(3));
-    ////
     mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw); //if the velocity model was better we would have moved a more sensible distance...
     //^^ sets mCurrentFrame mTcw
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));

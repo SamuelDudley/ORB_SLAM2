@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     cv::Mat autopilotTranslationInitial;
     cv::Mat autopilotRotationInitial;
 
-
+    float ratioAPToCameraScale;
 
     vector<float> eulerAutopilotCurrent(3);
 
@@ -260,17 +260,23 @@ int main(int argc, char **argv)
         	cameraRotationCurrent = SLAM.GetTracker()->mCurrentFrame.GetRotation();
         	cameraTranslationCurrent = SLAM.GetTracker()->mCurrentFrame.GetCameraCenter();
 
+
+
         	if (cameraRotationInitial.empty())
         	{
-        		cameraRotationInitial = cameraRotationCurrent;
-        		cameraTranslationInitial = cameraTranslationCurrent;
+
+        		cameraRotationInitial = cv::Mat::eye(3,3,CV_32F); // the first keyframe always has no rotation
+        		cameraTranslationInitial = cv::Mat(1,3,CV_32F,0.0); // the first keyframe always has no translation
 
         		autopilotRotationInitial = autopilotRotationCurrent;
         		autopilotTranslationInitial = autopilotTranslationCurrent;
 
+        		ratioAPToCameraScale = SLAM.GetTracker()->ratioAPToCameraScale;
+
         		cout << "initial camera & autopilot pose set at time = " << tframe << endl << endl;
-        		cout << "initial camera" << cameraRotationInitial << cameraTranslationInitial << endl;
-        		cout << "initial autopilot" << autopilotRotationInitial << autopilotTranslationInitial << endl;
+        		cout << "initial camera: " << cameraRotationInitial << cameraTranslationInitial << endl;
+        		cout << "initial autopilot: " << autopilotRotationInitial << autopilotTranslationInitial << endl;
+        		cout << "map scale factor: " << ratioAPToCameraScale << endl;
         	}
 
         	/* ---Rotation--- */

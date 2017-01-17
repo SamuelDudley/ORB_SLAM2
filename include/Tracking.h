@@ -92,6 +92,9 @@ public:
     eTrackingState mState;
     eTrackingState mLastProcessedState;
 
+    // Scale factor
+    float ratioAPToCameraScale;
+
     // Input sensor
     int mSensor;
 
