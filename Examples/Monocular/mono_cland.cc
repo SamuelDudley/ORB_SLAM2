@@ -219,7 +219,7 @@ int main(int argc, char **argv)
         float currentDown = vNEDPPositions[ni][2];
 
         cout << "time=" << tframe << endl;
-        cout << "AP roll 1      =" << currentRoll*radToDeg << ", pitch=" << currentPitch*radToDeg << ", yaw=" << currentYaw*radToDeg << endl;
+//        cout << "AP roll 1      =" << currentRoll*radToDeg << ", pitch=" << currentPitch*radToDeg << ", yaw=" << currentYaw*radToDeg << endl;
 
         eulerAutopilotCurrent = {currentRoll, currentPitch, currentYaw}; // we apply negitive values as the orb world & camera frame use -ve rotation conventions
         autopilotRotationCurrent = getRotationMatrix(eulerAutopilotCurrent); // note euler angles need to be in radians!
@@ -228,12 +228,7 @@ int main(int argc, char **argv)
 //        // this is a test of the rotation matrix math
         vector<float> a = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotRotationCurrent));
 
-        cout << "AP roll 2      =" << a[0]*radToDeg << ", pitch=" << a[1]*radToDeg << ", yaw=" << a[2]*radToDeg << endl;
-//
-//
-//
-//
-        cout << "AP north       =" << currentNorth << ", east=" << currentEast << ", down=" << currentDown << endl << endl;
+//        cout << "AP north       =" << currentNorth << ", east=" << currentEast << ", down=" << currentDown << endl << endl;
 
 		autopilotTranslationCurrent.at<float>(0,0) = currentNorth;
 		autopilotTranslationCurrent.at<float>(1,0) = currentEast;
@@ -304,31 +299,25 @@ int main(int argc, char **argv)
 
         	/* ---Rotation--- */
         	// rotation ap to camera frame
-//        	cv::Mat autopilotInCameraFrameRotation = autopilotRotationCurrent*mAxisAlignmentAutopilotToCamera*autopilotRotationInitial.inv()*mAxisAlignmentAutopilotToCamera;
-
 
         	cv::Mat autopilotInCameraFrameRotation2 = autopilotRotationInitial.t()*autopilotRotationCurrent;
         	cv::Mat autopilotInCameraFrameRotation3 =autopilotRotationInitial.t()*autopilotRotationCurrent;
-        	cv::Mat autopilotInCameraFrameRotation = autopilotInCameraFrameRotation3;
 
         	vector<float> tmp101 = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation2.t()));
         	vector<float> tmp201= {-tmp101[0],-tmp101[1], tmp101[2]};
         	autopilotInCameraFrameRotation2 = getRotationMatrix(tmp201);
 
-        	vector<float> tmp1 = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation));
+        	vector<float> tmp1 = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation3));
 			vector<float> tmp2= {-tmp1[0],-tmp1[1],-tmp1[2]};
 
-			autopilotInCameraFrameRotation = getRotationMatrix(tmp2);
+			cv::Mat autopilotInCameraFrameRotation = getRotationMatrix(tmp2);
 
 
         	// inverse of above, camera to ap frame
-        	// we are not just doing the inverse of above because we are using the camera as the datasource not the AP.
-        	// in order to make this valid replace autopilotInCameraFrameRotation with the current camera rotation estimate
 			vector<float> b = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraRotationCurrent));
 			vector<float> tmp3= {-b[0],-b[1],b[2]};
 
 			cameraRotationCurrent = getRotationMatrix(tmp3);
-
         	cv::Mat cameraInAutopilotFrameRotation = cameraRotationCurrent*autopilotRotationInitial.t();
 
         	/* ---Translation--- */
@@ -342,11 +331,9 @@ int main(int argc, char **argv)
 
 
         	cv::Mat cameraGlobalToCameraFrame = SLAM.GetTracker()->mCurrentFrame.GetRotation()*cameraTranslationCurrent;
-        	// translation ap to orb camera (values will change with the current orentation of the camera)
+        	// translation ap to orb camera (values will change with the current orientation of the camera)
         	cv::Mat translationCameraFrameNED = -autopilotInCameraFrameRotation2*translationOrbWorldFrameNED;
 
-        	// if we replace translationCameraFrameNED with a camera orb world estimate we can return the NED estimate back to the AP
-        	cv::Mat NEDPos = autopilotRotationInitial.inv()*mAxisAlignmentAutopilotToCamera.inv()*-(autopilotRotationInitial*autopilotRotationCurrent.inv()*translationCameraFrameNED);
 
         	//build the ap pose in the camera frame. we will use this as the velocity estimate
         	autopilotInCameraFrameRotation2.rowRange(0,3).colRange(0,3).copyTo(autopilotPoseCurrentCameraFrame.rowRange(0,3).colRange(0,3));
@@ -355,37 +342,30 @@ int main(int argc, char **argv)
     		autopilotPoseCurrent.at<float>(2,3) = translationCameraFrameNED.at<float>(2,0);
 
 
-
         	// generate some euler angles to check what is going on
-        	vector<float> a = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation));
-//        	vector<float> b = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraRotationCurrent));
+//        	vector<float> a = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation));
         	vector<float> c = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation2));
 
         	// camera estimate of AP roll, pitch, yaw in NED frame VVVV
         	vector<float> d = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraInAutopilotFrameRotation.t()));
 
-//        	cout << "autopilotTranslationCurrent =" <<endl<< autopilotTranslationCurrent << endl;
-			cout << "translationOrbWorldFrameNED =" <<endl<< translationOrbWorldFrameNED <<endl<< endl; //translationOrbWorldFrameNED.mul(1.0f/ratioAPToCameraScale)
-			cout << "delta_ned =" <<endl<< autopilotTranslationCurrent - autopilotTranslationInitial << endl << endl; //translationCameraFrameNED.mul(1.0f/ratioAPToCameraScale)
-			cout << "camera center =" <<endl<< cameraTranslationCurrent << endl << endl;
-			cout << "translatioNEDFrameOrbWorld scaled = " <<endl<< translatioNEDFrameOrbWorld <<endl<<endl;
-        	cout << "delta       ap =" << c[0]*radToDeg << ", pitch=" << c[1]*radToDeg << ", yaw=" << c[2]*radToDeg << endl;
-        	cout << "cam in ap frame =" << d[0]*radToDeg << ", pitch=" << d[1]*radToDeg << ", yaw=" << d[2]*radToDeg << endl;
-//        	cout << "AP roll in orb =" << tmp1[0]*radToDeg << ", pitch=" << tmp1[1]*radToDeg << ", yaw=" << tmp1[2]*radToDeg << endl;
-//        	cout << "delta + axis ap-=" << a[0]*radToDeg << ", pitch=" << a[1]*radToDeg << ", yaw=" << a[2]*radToDeg << endl;
-        	cout << "orb roll       =" << b[0]*radToDeg << ", pitch=" << b[1]*radToDeg << ", yaw=" << b[2]*radToDeg << endl << endl << endl;
-        	cout << "camera pose: " << endl<< cameraPose << endl << endl;
-        	cout << "ap    pose : " << endl<< autopilotPoseCurrent << endl << endl;
+			cout << "Cam          =" << endl << cameraTranslationCurrent << endl << endl;
+			cout << "AP est. Cam  =" << endl << translationOrbWorldFrameNED << endl << endl;
+			cout << "AP           =" << endl << autopilotTranslationCurrent - autopilotTranslationInitial << endl << endl;
+			cout << "Cam est. AP  =" << endl << translatioNEDFrameOrbWorld << endl << endl;
+
+            cout << "AP        roll =" << a[0]*radToDeg << ", pitch=" << a[1]*radToDeg << ", yaw=" << a[2]*radToDeg << endl;
+        	cout << "ORB in AP roll =" << d[0]*radToDeg << ", pitch=" << d[1]*radToDeg << ", yaw=" << d[2]*radToDeg << endl << endl;
+
+        	cout << "AP in ORB roll =" << c[0]*radToDeg << ", pitch=" << c[1]*radToDeg << ", yaw=" << c[2]*radToDeg << endl;
+        	cout << "ORB       roll =" << b[0]*radToDeg << ", pitch=" << b[1]*radToDeg << ", yaw=" << b[2]*radToDeg << endl << endl;
+
+        	cout << "Cam pose in Cam frame: " << endl << cameraPose << endl << endl;
+        	cout << "AP  pose in Cam frame: " << endl << autopilotPoseCurrent << endl << endl << endl << endl << endl;
+
 //        	cout << "trackingStatus: " << trackingStatus << endl << endl;
 //        	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
 
-//			cout << "roll=" << eulera[0]* 180 / PI << ", pitch=" << eulera[1]* 180 / PI << ", yaw=" << eulera[2]* 180 / PI << endl;
-//			vector<float> euleraa ={-eulera[0], -eulera[1], -eulera[2]};
-//			cv::Mat rotation_new = getRotationMatrix(euleraa);
-//
-//			cout << "rotation new=" << rotation_new << endl;
-//			eulerb = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(rotation_new));
-//			cout << "new roll=" << eulerb[0]* 180 / PI << ", pitch=" << eulerb[1]* 180 / PI << ", yaw=" << eulerb[2]* 180 / PI << endl;
 
         	getchar(); // if uncommented each frame will require a key press before continuing
 
