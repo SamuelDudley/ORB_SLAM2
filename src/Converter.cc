@@ -151,6 +151,7 @@ std::vector<float> Converter::toQuaternion(const cv::Mat &M)
 
 std::vector<float> Converter::toEuler(const std::vector<float> &q)
 {
+	double PI = 3.14159265;
     std::vector<float> e(3);
     // re-order from x,y,z,w to w,x,y,z
 //    float q0 = q[3]; //w
@@ -165,10 +166,11 @@ std::vector<float> Converter::toEuler(const std::vector<float> &q)
 
 
 
-//    e[0] = atan2(2*(q0*q3+q1*q2), q0*q0-q1*q1+q2*q2-q3*q3) * 180 / PI;
-//    e[1] = asin(2*(q0*q1-q2*q3)) * 180 / PI;
-//    e[2] = atan2(2*(q0*q2+q1*q3), q0*q0-q1*q1-q2*q2+q3*q3) * 180 / PI;
-	double ysqr = y * y;
+//    e[0] = atan2(2*(q0*q3+q1*q2), q0*q0-q1*q1+q2*q2-q3*q3);// * 180 / PI;
+//    e[1] = asin(2*(q0*q1-q2*q3));// * 180 / PI;
+//    e[2] = atan2(2*(q0*q2+q1*q3), q0*q0-q1*q1-q2*q2+q3*q3); //* 180 / PI;
+
+    double ysqr = y * y;
 
 	// roll (x-axis rotation)
 	double t0 = +2.0f * (w * x + y * z);
@@ -186,6 +188,21 @@ std::vector<float> Converter::toEuler(const std::vector<float> &q)
 	double t4 = +1.0f - 2.0f * (ysqr + z * z);
 	e[2] = std::atan2(t3, t4);
 
+//	// roll (x-axis rotation)
+//	double t0 = +2.0f * (w * x - y * z);
+//	double t1 = +1.0f - 2.0f * (x * x - z * z);
+//	e[0] = std::atan2(t0, t1);
+//
+//	// pitch (y-axis rotation)
+//	double t2 = +2.0f * (x * y + z * w);
+//	t2 = t2 > 1.0f ? 1.0f : t2;
+//	t2 = t2 < -1.0f ? -1.0f : t2;
+//	e[1] = std::asin(t2);
+//
+//	// yaw (z-axis rotation)
+//	double t3 = +2.0f * (w * y - x *z);
+//	double t4 = +1.0f - 2.0f * (ysqr - z * z);
+//	e[2] = std::atan2(t3, t4);
 
     return e;
 }

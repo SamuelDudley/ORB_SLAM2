@@ -755,7 +755,7 @@ void Tracking::CreateInitialMapMonocular()
 	// calculate the scale factor required to get the camera units up to meters
 	// store the scale factor so we can use it later
 	// ratioAPToCameraScale is defined in Tracking.h
-    ratioAPToCameraScale = apDisplacement/cameraDisplacement;
+    ratioAPToCameraScale = (apDisplacement/cameraDisplacement)*medianDepth;
 
 
 //    invMedianDepth = ratioAPToCameraScale;
