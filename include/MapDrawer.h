@@ -45,6 +45,12 @@ public:
     void SetReferenceKeyFrame(KeyFrame *pKF);
     void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
 
+    void SetCurrentAutopilotPose(const cv::Mat &TcwAP);
+    void DrawCurrentAutopilot(pangolin::OpenGlMatrix &TcwAP);
+    void GetCurrentOpenGLAutopilotMatrix(pangolin::OpenGlMatrix &M);
+
+
+
 private:
 
     float mKeyFrameSize;
@@ -55,6 +61,8 @@ private:
     float mCameraLineWidth;
 
     cv::Mat mCameraPose;
+
+    cv::Mat mAutopilotPose;
 
     std::mutex mMutexCamera;
 };

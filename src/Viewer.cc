@@ -85,7 +85,11 @@ void Viewer::Run()
             .SetHandler(new pangolin::Handler3D(s_cam));
 
     pangolin::OpenGlMatrix Twc;
+    pangolin::OpenGlMatrix TwcAP; // autopilot pose
+
     Twc.SetIdentity();
+    TwcAP.SetIdentity();
+
 
     cv::namedWindow("ORB-SLAM2: Current Frame");
 
@@ -97,6 +101,7 @@ void Viewer::Run()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mpMapDrawer->GetCurrentOpenGLCameraMatrix(Twc);
+        mpMapDrawer->GetCurrentOpenGLAutopilotMatrix(TwcAP);
 
         if(menuFollowCamera && bFollow)
         {
@@ -126,6 +131,9 @@ void Viewer::Run()
 
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
+
+        mpMapDrawer->DrawCurrentAutopilot(TwcAP);
+
         mpMapDrawer->DrawCurrentCamera(Twc);
         if(menuShowKeyFrames || menuShowGraph)
             mpMapDrawer->DrawKeyFrames(menuShowKeyFrames,menuShowGraph);

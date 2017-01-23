@@ -429,28 +429,50 @@ void Tracking::Track()
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
-            	if(!mCurrentFrame.mIFrameTransRot.empty()) // use the supplied inter-frame velocity info if available
-            	{
-            		mVelocity = mCurrentFrame.mIFrameTransRot;
 
-            	}
-            	else // assume linear rotation and translation velocity model
-            	{
-					cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
+				cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
+
+				if(!mCurrentFrame.mIFrameTransRot.empty()) // use the supplied inter-frame velocity info if available
+				{
+//					cv::Mat lastAPPose = mLastFrame.mIFrameTransRot;
+//					cv::Mat lastAPPoseRotation = cv::Mat::eye(3,3,CV_32F);
+//					lastAPPose.rowRange(0,3).colRange(0,3).copyTo(lastAPPoseRotation.rowRange(0,3).colRange(0,3));
+//					lastAPPoseRotation = lastAPPoseRotation.t();
+//					lastAPPoseRotation.copyTo(LastTwc.rowRange(0,3).colRange(0,3));
+//					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+//					mVelocity = mCurrentFrame.mIFrameTransRot*LastTwc;
+
+					mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
+					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+
+//					cv::Mat currentAPPoseRotation = cv::Mat::eye(3,3,CV_32F);
+//					mCurrentFrame.mIFrameTransRot.rowRange(0,3).colRange(0,3).copyTo(mCurrentFrame.mTcw.rowRange(0,3).colRange(0,3));
+
+//					mVelocity = mCurrentFrame.mIFrameTransRot*LastTwc;
+					mVelocity = mCurrentFrame.mTcw*LastTwc;
+
+
+
+					cout << endl << "using supplied mVelocity: " << mVelocity << endl << endl;
+				}
+				else // assume linear rotation and translation velocity model
+				{
 					mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
 					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
-//					cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
-//					tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
-//					cout << endl << "mVelocity: " << mVelocity << endl << endl;
-//					cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
-            	}
+				}
+//				cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
+//				tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
+//				cout << endl << "mVelocity: " << mVelocity << endl << endl;
+//				cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
+
             }
             else // this occurs on loop closure
                 mVelocity = cv::Mat();
 
 
-            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw); //set the camera pose
+            mpMapDrawer->SetCurrentAutopilotPose(mCurrentFrame.mIFrameTransRot); //set the Autopilot pose in the viwer app
+            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw); //set the camera pose in the viewer app
 
             // Clean temporal point matches
             for(int i=0; i<mCurrentFrame.N; i++)
@@ -941,6 +963,7 @@ bool Tracking::TrackWithMotionModel()
     UpdateLastFrame();
 
     mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw); //if the velocity model was better we would have moved a more sensible distance...
+//    mCurrentFrame.SetPose(mCurrentFrame.mIFrameTransRot);
     //^^ sets mCurrentFrame mTcw
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -952,23 +975,25 @@ bool Tracking::TrackWithMotionModel()
         th=7;
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
 
+    cout << "tracking with motion model :" << nmatches << endl << endl;
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+
+        cout << "tracking with motion model wide :" << nmatches << endl << endl;
     }
 
+
+
     if(nmatches<20)
+    	cout << "tracking with motion model failed (<20)" << endl << endl;
         return false;
 
     // Optimize frame pose with all matches
     Optimizer::PoseOptimization(&mCurrentFrame);
 
-    /////// trying to stop the world z from going spastic... does not allow initilisation
-//    cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
-//    tmp.row(2).col(3).copyTo(mCurrentFrame.mTcw.row(2).col(3));
-    //////
 
     // Discard outliers
     int nmatchesMap = 0;
