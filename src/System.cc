@@ -315,6 +315,26 @@ void System::Reset()
     mbReset = true;
 }
 
+void System::DeactivateStepping()
+{
+    unique_lock<mutex> lock(mMutexStepping);
+    mbActivateStepping = false;
+    mbDeactivateStepping = true;
+}
+
+void System::ActivateStepping()
+{
+    unique_lock<mutex> lock(mMutexStepping);
+    mbDeactivateStepping = false;
+    mbActivateStepping = true;
+}
+
+bool System::GetStepping()
+{
+    return mbActivateStepping;
+}
+
+
 int System::GetStatus()
 {
     return mpTracker->mState;

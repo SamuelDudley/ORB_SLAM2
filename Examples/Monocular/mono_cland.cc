@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     											0,-1,0,
 												0,0,1);
 
-    cv::Mat cameraPose = cv::Mat::eye(4,4,CV_32F);
+    cv::Mat cameraPose; //start empty
 
 
     cv::Mat cameraRotationCurrent = cv::Mat::eye(3,3,CV_32F);
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
 
     cv::Mat autopilotPoseCurrent = cv::Mat::eye(4,4,CV_32F);
-    cv::Mat autopilotPoseCurrentCameraFrame = cv::Mat::eye(4,4,CV_32F);
+    cv::Mat autopilotPoseCurrentCameraFrame;
     cv::Mat autopilotRotationCurrent = cv::Mat::eye(3,3,CV_32F);
     cv::Mat autopilotTranslationCurrent(3,1,CV_32F);
 
@@ -247,25 +247,18 @@ int main(int argc, char **argv)
 
 
 
-
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: " << vstrImageFilenames[ni] << endl;
             return 1;
         }
 
+
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
-
-        // Pass the image to the SLAM system
-
-
-        cameraPose = SLAM.TrackMonocular(im, tframe, mAPPoseNED, mIFrameTransRot);
-        trackingStatus = SLAM.GetStatus();
-        cameraHasJumped = SLAM.CameraHasJumped();
 
         if (!cameraPose.empty())
         {
@@ -297,21 +290,15 @@ int main(int argc, char **argv)
         		cout << "map scale factor: " << ratioAPToCameraScale << endl << endl;
         	}
 
+
+
         	/* ---Rotation--- */
         	// rotation ap to camera frame
-
         	cv::Mat autopilotInCameraFrameRotation2 = autopilotRotationInitial.t()*autopilotRotationCurrent;
-        	cv::Mat autopilotInCameraFrameRotation3 =autopilotRotationInitial.t()*autopilotRotationCurrent;
 
         	vector<float> tmp101 = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation2.t()));
         	vector<float> tmp201= {-tmp101[0],-tmp101[1], tmp101[2]};
         	autopilotInCameraFrameRotation2 = getRotationMatrix(tmp201);
-
-        	vector<float> tmp1 = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation3));
-			vector<float> tmp2= {-tmp1[0],-tmp1[1],-tmp1[2]};
-
-			cv::Mat autopilotInCameraFrameRotation = getRotationMatrix(tmp2);
-
 
         	// inverse of above, camera to ap frame
 			vector<float> b = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(cameraRotationCurrent));
@@ -325,9 +312,9 @@ int main(int argc, char **argv)
         	cv::Mat translationOrbWorldFrameNED1 = autopilotRotationInitial.t()*(autopilotTranslationCurrent - autopilotTranslationInitial);
         	cv::Mat translationOrbWorldFrameNED = mAxisAlignmentAutopilotToCamera*translationOrbWorldFrameNED1.mul(1.0f/ratioAPToCameraScale);
 
-        	// translation camera to ned world
+        	// translation camera to ned world (not sure about the values in this one...)
         	cv::Mat translatioNEDFrameOrbWorld1 = -(autopilotRotationInitial*cameraTranslationCurrent);
-        	cv::Mat translatioNEDFrameOrbWorld = translatioNEDFrameOrbWorld1.mul(ratioAPToCameraScale);
+        	cv::Mat translatioNEDFrameOrbWorld = translatioNEDFrameOrbWorld1.mul(ratioAPToCameraScale); //<< this is broken
 
 
         	cv::Mat cameraGlobalToCameraFrame = SLAM.GetTracker()->mCurrentFrame.GetRotation()*cameraTranslationCurrent;
@@ -336,14 +323,14 @@ int main(int argc, char **argv)
 
 
         	//build the ap pose in the camera frame. we will use this as the velocity estimate
+        	autopilotPoseCurrentCameraFrame = cv::Mat::eye(4,4,CV_32F);
         	autopilotInCameraFrameRotation2.rowRange(0,3).colRange(0,3).copyTo(autopilotPoseCurrentCameraFrame.rowRange(0,3).colRange(0,3));
-    		autopilotPoseCurrent.at<float>(0,3) = translationCameraFrameNED.at<float>(0,0); //(row, col)
-    		autopilotPoseCurrent.at<float>(1,3) = translationCameraFrameNED.at<float>(1,0);
-    		autopilotPoseCurrent.at<float>(2,3) = translationCameraFrameNED.at<float>(2,0);
+        	autopilotPoseCurrentCameraFrame.at<float>(0,3) = translationCameraFrameNED.at<float>(0,0); //(row, col)
+        	autopilotPoseCurrentCameraFrame.at<float>(1,3) = translationCameraFrameNED.at<float>(1,0);
+        	autopilotPoseCurrentCameraFrame.at<float>(2,3) = translationCameraFrameNED.at<float>(2,0);
 
 
         	// generate some euler angles to check what is going on
-//        	vector<float> a = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation));
         	vector<float> c = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(autopilotInCameraFrameRotation2));
 
         	// camera estimate of AP roll, pitch, yaw in NED frame VVVV
@@ -361,15 +348,22 @@ int main(int argc, char **argv)
         	cout << "ORB       roll =" << b[0]*radToDeg << ", pitch=" << b[1]*radToDeg << ", yaw=" << b[2]*radToDeg << endl << endl;
 
         	cout << "Cam pose in Cam frame: " << endl << cameraPose << endl << endl;
-        	cout << "AP  pose in Cam frame: " << endl << autopilotPoseCurrent << endl << endl << endl << endl << endl;
+        	cout << "AP  pose in Cam frame: " << endl << autopilotPoseCurrentCameraFrame << endl << endl << endl << endl << endl;
 
 //        	cout << "trackingStatus: " << trackingStatus << endl << endl;
 //        	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
 
+        	if (SLAM.GetStepping()){
+        		getchar(); // if uncommented each frame will require a key press before continuing
+        	}
 
-        	getchar(); // if uncommented each frame will require a key press before continuing
 
         }
+
+        // Pass the image to the SLAM system
+		cameraPose = SLAM.TrackMonocular(im, tframe, mAPPoseNED, autopilotPoseCurrentCameraFrame);
+		trackingStatus = SLAM.GetStatus();
+		cameraHasJumped = SLAM.CameraHasJumped();
 
 
 //        if (ExtractCurrentPosRotation(SLAM, pos, euler))

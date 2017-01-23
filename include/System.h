@@ -84,6 +84,10 @@ public:
     // This resumes local mapping thread and performs SLAM again.
     void DeactivateLocalizationMode();
 
+    void ActivateStepping();
+    void DeactivateStepping();
+    bool GetStepping();
+
     // Reset the system (clear map)
     void Reset();
 
@@ -166,6 +170,11 @@ private:
     std::mutex mMutexMode;
     bool mbActivateLocalizationMode;
     bool mbDeactivateLocalizationMode;
+
+    // Stepping flags
+    std::mutex mMutexStepping;
+    bool mbDeactivateStepping;
+	bool mbActivateStepping;
 };
 
 }// namespace ORB_SLAM

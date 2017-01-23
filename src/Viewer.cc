@@ -70,6 +70,9 @@ void Viewer::Run()
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
     pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
+
+    pangolin::Var<bool> menuStepping("menu.Stepping",true,true);
+
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
 
 
@@ -95,6 +98,8 @@ void Viewer::Run()
 
     bool bFollow = true;
     bool bLocalizationMode = false;
+
+    bool bStepping = true; // by default turn on stepping mode between frames
 
     while(1)
     {
@@ -128,6 +133,17 @@ void Viewer::Run()
             mpSystem->DeactivateLocalizationMode();
             bLocalizationMode = false;
         }
+
+        else if(menuStepping && !bStepping)
+		{
+			mpSystem->ActivateStepping();
+			bStepping = true;
+		}
+        else if(!menuStepping && bStepping)
+		{
+			mpSystem->DeactivateStepping();
+			bStepping = false;
+		}
 
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
