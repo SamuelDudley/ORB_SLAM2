@@ -236,7 +236,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot) // could pass in EKF info here...
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot)
 {
     mImGray = im;
 
@@ -461,11 +461,6 @@ void Tracking::Track()
 					mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
 					mVelocity = mCurrentFrame.mTcw*LastTwc;
 				}
-//				cv::Mat tmp = cv::Mat::eye(4,4,CV_32F);
-//				tmp.row(2).colRange(0,4).copyTo(mVelocity.row(2).colRange(0,4));
-//				cout << endl << "mVelocity: " << mVelocity << endl << endl;
-//				cout << "mLastFrame.mTcw: " << mLastFrame.mTcw << endl << endl;
-
             }
             else // this occurs on loop closure
                 mVelocity = cv::Mat();

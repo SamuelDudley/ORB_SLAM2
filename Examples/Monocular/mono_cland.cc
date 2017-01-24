@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        if (!cameraPose.empty())
+        if (!cameraPose.empty() && SLAM.GetStatus() != 1)
         {
 
         	cameraRotationCurrent = SLAM.GetTracker()->mCurrentFrame.GetRotation();
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
 
 
 
-        	if (cameraRotationInitial.empty())
+        	if (SLAM.GetStatus() == 2)
         	{
 
         		cameraRotationInitial = cv::Mat::eye(3,3,CV_32F); // the first keyframe always has no rotation
@@ -354,7 +354,8 @@ int main(int argc, char **argv)
 //        	cout << "cameraHasJumped: " << cameraHasJumped << endl << endl;
 
         	if (SLAM.GetStepping()){
-        		getchar(); // if uncommented each frame will require a key press before continuing
+        		// if  in stepping mode each frame will require a key press before continuing
+        		getchar();
         	}
 
 
