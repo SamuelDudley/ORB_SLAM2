@@ -33,8 +33,10 @@
 
 #include<System.h>
 //#include<mavlink/common/mavlink.h>
+#include<boost/python.hpp>
 
 using namespace std;
+
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
         vector<double> &vTimestamps);
@@ -83,7 +85,6 @@ inline std::string& trim(std::string& s, const char* t = wsab)
 {
     return ltrim(rtrim(s, t), t);
 }
-
 
 int main(int argc, char **argv)
 {
@@ -594,4 +595,14 @@ cv::Mat getRotationMatrix(vector<float> &euler)
 	return rotationMatrix;
 }
 
+char const* greet()
+{
+   return "hello, world";
+}
+
+BOOST_PYTHON_MODULE(hello_ext)
+{
+	using namespace boost::python;
+    def("greet", greet);
+}
 
