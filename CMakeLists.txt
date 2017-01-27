@@ -68,6 +68,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/xiApiPlusOcv.cc
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -79,6 +80,7 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 ${Boost_LIBRARIES}
 ${PYTHON_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/aruco/src/libaruco.so
+/usr/lib/libm3api.so
 )
 
 
@@ -93,11 +95,11 @@ target_link_libraries(bin_vocabulary ${PROJECT_NAME})
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
-ADD_LIBRARY(mono_cland_ext SHARED Examples/Monocular/mono_cland.cc)
-target_link_libraries(mono_cland_ext ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
-add_executable(mono_cland
-Examples/Monocular/mono_cland.cc)
-target_link_libraries(mono_cland ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+#ADD_LIBRARY(mono_cland_ext SHARED Examples/Monocular/mono_cland.cc)
+#target_link_libraries(mono_cland_ext ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+add_executable(mono_cland_live2
+Examples/Monocular/mono_cland_live2.cc)
+target_link_libraries(mono_cland_live2 ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 
 

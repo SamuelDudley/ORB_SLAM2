@@ -778,7 +778,7 @@ void Tracking::CreateInitialMapMonocular()
 //    invMedianDepth = ratioAPToCameraScale;
     cout << "invMedianDepth was going to be " << invMedianDepth_old << " but is now " << ratioAPToCameraScale << endl;
 
-    getchar();
+//    getchar();
     // FIXME: hack to change the initial baseline to meters !!!
 
     // Scale initial baseline
