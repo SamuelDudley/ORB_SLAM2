@@ -1,0 +1,13 @@
+/home/uas/git/aruco-2.0.17/src/CMakeFiles/aruco.dir
+/home/uas/git/aruco-2.0.17/utils_calibration/CMakeFiles/aruco_calibration.dir
+/home/uas/git/aruco-2.0.17/utils_calibration/CMakeFiles/aruco_calibration_fromimages.dir
+/home/uas/git/aruco-2.0.17/utils_markermap/CMakeFiles/aruco_create_markermap.dir
+/home/uas/git/aruco-2.0.17/utils_markermap/CMakeFiles/aruco_markermap_pix2meters.dir
+/home/uas/git/aruco-2.0.17/utils/CMakeFiles/aruco_print_dictionary.dir
+/home/uas/git/aruco-2.0.17/utils/CMakeFiles/aruco_print_marker.dir
+/home/uas/git/aruco-2.0.17/utils/CMakeFiles/aruco_simple.dir
+/home/uas/git/aruco-2.0.17/utils_markermap/CMakeFiles/aruco_simple_markermap.dir
+/home/uas/git/aruco-2.0.17/utils/CMakeFiles/aruco_test.dir
+/home/uas/git/aruco-2.0.17/utils_markermap/CMakeFiles/aruco_test_markermap.dir
+/home/uas/git/aruco-2.0.17/utils/CMakeFiles/aruco_tracker.dir
+/home/uas/git/aruco-2.0.17/CMakeFiles/uninstall.dir

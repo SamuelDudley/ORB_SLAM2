@@ -29,14 +29,14 @@
 #include<iomanip>
 #include<opencv2/core.hpp>
 #include<Converter.h>
-
+#include<aruco.h>
 
 #include<System.h>
 //#include<mavlink/common/mavlink.h>
 #include<boost/python.hpp>
 
 using namespace std;
-
+using namespace aruco;
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
         vector<double> &vTimestamps);
@@ -197,6 +197,24 @@ int main(int argc, char **argv)
 
     vector<float> eulerb(3);
 
+    // aruco setup
+
+    cv::Mat cameraMatrix = cv::Mat::eye(3,3,CV_32F);
+    cv::Mat distorsionCoeff(4,1,CV_32F);
+
+
+    MarkerDetector MDetector;
+    double MarkerSize = 0.1;
+	MDetector.setThresholdParams(7, 7);
+	MDetector.setThresholdParamRange(2, 0);
+	std::map<uint32_t,MarkerPoseTracker> MTracker; // use a map so that for each id, we use a different pose tracker
+	CameraParameters CamParam;
+	CamParam.setParams(cameraMatrix, distorsionCoeff, cv::Size(1024,768));
+//	cameraMatrix	3x3 matrix (fx 0 cx, 0 fy cy, 0 0 1)
+//	distorsionCoeff	4x1 matrix (k1,k2,p1,p2)
+//	size	image size
+
+
 
 
     for(int ni=0; ni<nImages; ni++)
@@ -204,6 +222,13 @@ int main(int argc, char **argv)
         // Read image from file
         im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         // grab the image from the camera
+
+        // Detect markers
+		vector< Marker > Markers=MDetector.detect(im);
+		// Do pose estimation for each marker
+		for(auto & marker:Markers)
+			MTracker[marker.id].estimatePose(marker,CamParam,MarkerSize);
+		// If marker id is specified then look for just that id, otherwise lock on to closest marker
 
         // Supply optional inter-frame rotation and translation
         // TODO: pull this info from the Autopilot EKF and produce the matrix
@@ -600,7 +625,7 @@ char const* greet()
    return "hello, world";
 }
 
-BOOST_PYTHON_MODULE(hello_ext)
+BOOST_PYTHON_MODULE(libmono_cland_ext)
 {
 	using namespace boost::python;
     def("greet", greet);
