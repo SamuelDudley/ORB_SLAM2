@@ -139,6 +139,9 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
+    // read the settings .yml
+    cv::FileStorage fSettings(argv[2], cv::FileStorage::READ);
+
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
@@ -199,9 +202,12 @@ int main(int argc, char **argv)
 
     // aruco setup
 
-    cv::Mat cameraMatrix = cv::Mat::eye(3,3,CV_32F);
-    cv::Mat distorsionCoeff(4,1,CV_32F);
 
+    cv::Mat cameraMatrix = (cv::Mat_<float>(3,3) << fSettings["Camera.fx"],0,fSettings["Camera.cx"],
+													0,fSettings["Camera.fy"],fSettings["Camera.cy"],
+													0,0,1);
+
+    cv::Mat distorsionCoeff  = (cv::Mat_<float>(4,1) << fSettings["Camera.k1"],fSettings["Camera.k2"],fSettings["Camera.p1"],fSettings["Camera.p2"]);
 
     MarkerDetector MDetector;
     double MarkerSize = 0.1;
@@ -209,7 +215,7 @@ int main(int argc, char **argv)
 	MDetector.setThresholdParamRange(2, 0);
 	std::map<uint32_t,MarkerPoseTracker> MTracker; // use a map so that for each id, we use a different pose tracker
 	CameraParameters CamParam;
-	CamParam.setParams(cameraMatrix, distorsionCoeff, cv::Size(1024,768));
+	CamParam.setParams(cameraMatrix, distorsionCoeff, cv::Size(fSettings["Camera.width"],fSettings["Camera.height"]));
 //	cameraMatrix	3x3 matrix (fx 0 cx, 0 fy cy, 0 0 1)
 //	distorsionCoeff	4x1 matrix (k1,k2,p1,p2)
 //	size	image size

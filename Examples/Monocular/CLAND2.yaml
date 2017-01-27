@@ -15,6 +15,9 @@ Camera.k2: 0.15335246
 Camera.p1: 0.00070352
 Camera.p2: -0.00914747
 
+Camera.width: 1024
+Camera.height: 768
+
 # Camera frames per second 
 Camera.fps: 5.0
 
