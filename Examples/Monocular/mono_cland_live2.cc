@@ -205,6 +205,7 @@ int main(int argc, char **argv)
     vector<float> euler(3);
 
     vector<float> eulerb(3);
+    vector<float> eulertr(3);
 
     // aruco setup
 
@@ -247,7 +248,7 @@ int main(int argc, char **argv)
 	cv::Mat src;
 //	cv::Mat im;
 	int count = 0;
-
+	cv::Mat markerRot = cv::Mat::eye(3,3,CV_32F);
 
     for(int ni=0; ni<nImages; ni++)
     {
@@ -261,7 +262,6 @@ int main(int argc, char **argv)
 //    	count++;
         // grab the image from the camera
 
-    	cout << im.size() <<endl;
 
         // Detect markers
 		vector< Marker > Markers=MDetector.detect(im);
@@ -271,7 +271,11 @@ int main(int argc, char **argv)
 		// If marker id is specified then look for just that id, otherwise lock on to closest marker
 
 		for (unsigned int i = 0; i < Markers.size(); i++) {
-			cout << "Detected target id:" << Markers[i].id << " tvec_x:" << Markers[i].Tvec.at<float>(0,0) << " tvec_y:" << Markers[i].Tvec.at<float>(0,1) << " distance:" << Markers[i].Tvec.at<float>(0,2) << endl;
+			cv::Rodrigues(Markers[i].Rvec,markerRot);
+			cout << "Detected target id:" << Markers[i].id << endl << " Tvec:" << Markers[i].Tvec << endl <<"Rvec:" << markerRot << endl;
+			vector<float> eulertr = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(markerRot));
+			cout << "marker roll =" << eulertr[0]*radToDeg << ", pitch=" << eulertr[1]*radToDeg << ", yaw=" << eulertr[2]*radToDeg << endl;
+			cout << "top_left: " << Markers[i][0] << "  top_right: " << Markers[i][1] <<  "  btm_right: " << Markers[i][2] << " btm_left: " << Markers[i][3] << endl << endl;
 		}
 
 		// Loop through each detected marker
@@ -280,7 +284,7 @@ int main(int argc, char **argv)
 			Markers[i].draw(im, cv::Scalar(0, 255, 0), 2, false);
 				// If pose estimation was successful, draw AR cube and distance
 			if (CamParam.isValid() && MarkerSize != -1){
-				cout << Markers[i].id << ":" << Markers[i].Tvec.at<float>(0,0) << ":" << Markers[i].Tvec.at<float>(0,1) << ":" << Markers[i].Tvec.at<float>(0,2) << endl;
+//				cout << Markers[i].id << ":" << Markers[i].Tvec.at<float>(0,0) << ":" << Markers[i].Tvec.at<float>(0,1) << ":" << Markers[i].Tvec.at<float>(0,2) << endl;
 				CvDrawingUtils::draw3dAxis(im, Markers[i], CamParam);
 
 			// Otherwise draw a red marker
@@ -303,7 +307,7 @@ int main(int argc, char **argv)
         float currentEast = vNEDPPositions[ni][1];
         float currentDown = vNEDPPositions[ni][2];
 
-        cout << "time= " << tframe <<" FPS= " << endl;//cam.GetFrameRate() << endl;
+        cout << "time= " << tframe <<" FPS= " << cam.GetFrameRate() << endl;
 //        cout << "AP roll 1      =" << currentRoll*radToDeg << ", pitch=" << currentPitch*radToDeg << ", yaw=" << currentYaw*radToDeg << endl;
 
         eulerAutopilotCurrent = {currentRoll, currentPitch, currentYaw}; // we apply negitive values as the orb world & camera frame use -ve rotation conventions
