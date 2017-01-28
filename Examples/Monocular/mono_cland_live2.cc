@@ -39,6 +39,8 @@
 using namespace std;
 using namespace aruco;
 
+#define HandleResult(res,place) if (res!=XI_OK) {printf("Error after %s (%d)",place,res);}
+
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
         vector<double> &vTimestamps);
 
@@ -49,6 +51,9 @@ bool ExtractCurrentPosRotation(ORB_SLAM2::System &SLAM, vector<float> &pos,
 		vector<float> &euler);
 
 cv::Mat getRotationMatrix(vector<float> &euler);
+
+
+
 
 template<typename T>
    T StringToNumber(const std::string& numberAsString)
@@ -223,7 +228,7 @@ int main(int argc, char **argv)
 //	distorsionCoeff	4x1 matrix (k1,k2,p1,p2)
 //	size	image size
 
-	/// ximea camera code
+
 	// Sample for XIMEA OpenCV
 	xiAPIplusCameraOcv cam;
 	cam.OpenFirst();
@@ -231,20 +236,29 @@ int main(int argc, char **argv)
 //	cam.SetDownsampling(XI_DWN_2x2);
 	cam.StartAcquisition();
 	cam.EnableAutoExposureAutoGain();
+
 //	cam.EnableHDR();
 //	cam.EnableWhiteBalanceAuto();
+
 	cam.SetAutoExposureAutoGainExposurePriority(0.8f);
 //	cam.SetWidth(1024);
 //	cam.SetHeight(1024);
 
-
+	cv::Mat src;
+//	cv::Mat im;
+	int count = 0;
 
 
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
 //        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
-    	im = cam.GetNextImageOcvMat();
+
+    	src = cam.GetNextImageOcvMat();
+    	cv::resize(src, im, cv::Size(1024, 1024), 0, 0, cv::INTER_CUBIC); // resize to 1024x768 resolution
+
+//    	cv::imwrite( "/home/uas/Documents/ximea_cal/images/"+std::to_string(count)+".jpg", im );
+//    	count++;
         // grab the image from the camera
 
     	cout << im.size() <<endl;
@@ -258,6 +272,21 @@ int main(int argc, char **argv)
 
 		for (unsigned int i = 0; i < Markers.size(); i++) {
 			cout << "Detected target id:" << Markers[i].id << " tvec_x:" << Markers[i].Tvec.at<float>(0,0) << " tvec_y:" << Markers[i].Tvec.at<float>(0,1) << " distance:" << Markers[i].Tvec.at<float>(0,2) << endl;
+		}
+
+		// Loop through each detected marker
+		for (unsigned int i = 0; i < Markers.size(); i++) {
+			// If marker id was found, draw a green marker
+			Markers[i].draw(im, cv::Scalar(0, 255, 0), 2, false);
+				// If pose estimation was successful, draw AR cube and distance
+			if (CamParam.isValid() && MarkerSize != -1){
+				cout << Markers[i].id << ":" << Markers[i].Tvec.at<float>(0,0) << ":" << Markers[i].Tvec.at<float>(0,1) << ":" << Markers[i].Tvec.at<float>(0,2) << endl;
+				CvDrawingUtils::draw3dAxis(im, Markers[i], CamParam);
+
+			// Otherwise draw a red marker
+			} else {
+				Markers[i].draw(im, cv::Scalar(0, 0, 255), 2, false);
+			}
 		}
 
         // Supply optional inter-frame rotation and translation
@@ -274,7 +303,7 @@ int main(int argc, char **argv)
         float currentEast = vNEDPPositions[ni][1];
         float currentDown = vNEDPPositions[ni][2];
 
-        cout << "time= " << tframe <<" FPS= " << cam.GetFrameRate() << endl;
+        cout << "time= " << tframe <<" FPS= " << endl;//cam.GetFrameRate() << endl;
 //        cout << "AP roll 1      =" << currentRoll*radToDeg << ", pitch=" << currentPitch*radToDeg << ", yaw=" << currentYaw*radToDeg << endl;
 
         eulerAutopilotCurrent = {currentRoll, currentPitch, currentYaw}; // we apply negitive values as the orb world & camera frame use -ve rotation conventions
@@ -411,6 +440,7 @@ int main(int argc, char **argv)
 
         	if (SLAM.GetStepping()){
         		// if  in stepping mode each frame will require a key press before continuing
+        		cam.DisableAutoExposureAutoGain();
         		getchar();
         	}
 
