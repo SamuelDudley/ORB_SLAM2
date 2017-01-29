@@ -33,13 +33,11 @@
 
 #include<System.h>
 //#include<mavlink/common/mavlink.h>
-#include<boost/python.hpp>
 #include<xiApiPlusOcv.h>
 
 using namespace std;
 using namespace aruco;
 
-#define HandleResult(res,place) if (res!=XI_OK) {printf("Error after %s (%d)",place,res);}
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
         vector<double> &vTimestamps);
@@ -671,16 +669,5 @@ cv::Mat getRotationMatrix(vector<float> &euler)
 													-1.0f*sY,          sX*cY,     cX*cY        );
 
 	return rotationMatrix;
-}
-
-char const* greet()
-{
-   return "hello, world";
-}
-
-BOOST_PYTHON_MODULE(libmono_cland_ext)
-{
-	using namespace boost::python;
-    def("greet", greet);
 }
 

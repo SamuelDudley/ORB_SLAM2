@@ -101,5 +101,8 @@ add_executable(mono_cland_live2
 Examples/Monocular/mono_cland_live2.cc)
 target_link_libraries(mono_cland_live2 ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
+ADD_LIBRARY(SLAM SHARED src/Wrapper.cc)
+target_link_libraries(SLAM ${PROJECT_NAME} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 

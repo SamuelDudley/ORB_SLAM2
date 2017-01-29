@@ -1,4 +1,4 @@
-##Closed-Loop Alternate Navigation (C-LAN) for ArduPilot
+##Alternate Navigation System for ArduPilot
 This project brings together SLAM and marker recognition
 
 #### What?
