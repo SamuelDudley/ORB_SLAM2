@@ -39,7 +39,7 @@ Frame::Frame()
 Frame::Frame(const Frame &frame)
     :mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
      mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()),
-     mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), mAPPoseNED(frame.mAPPoseNED), mIFrameTransRot(frame.mIFrameTransRot), N(frame.N), mvKeys(frame.mvKeys),
+     mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), mAPPoseNED(frame.mAPPoseNED), mIFrameTransRot(frame.mIFrameTransRot), vMarkers(frame.vMarkers), N(frame.N), mvKeys(frame.mvKeys),
      mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn),  mvuRight(frame.mvuRight),
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
      mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
@@ -171,9 +171,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot, vector<aruco::Marker> &vMarkers)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mAPPoseNED(mAPPoseNED), mIFrameTransRot(mIFrameTransRot)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mAPPoseNED(mAPPoseNED), mIFrameTransRot(mIFrameTransRot), vMarkers(vMarkers)
 {
     // Frame ID
     mnId=nNextId++;
@@ -190,12 +190,18 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     // ORB extraction
     ExtractORB(0,imGray);
 
+    ExtractMarkerPoints();
+
+    M = mvMarkers.size(); // visual markers
+
     N = mvKeys.size();
 
     if(mvKeys.empty())
         return;
 
     UndistortKeyPoints();
+
+    UndistortMarkerPoints();
 
     // Set no stereo information
     mvuRight = vector<float>(N,-1);
@@ -243,6 +249,27 @@ void Frame::AssignFeaturesToGrid()
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
+
+void Frame::ExtractMarkerPoints()
+{
+	for (unsigned int i = 0; i < vMarkers.size(); i++) {
+		for (unsigned int ii = 0; ii < vMarkers[i].size(); ii++) {
+			// 0 = image px x,y coord of top left
+			// 1 = image px x,y coord of top right
+			// 2 = image px x,y coord of btm right
+			// 3 = image px x,y coord of btm left
+			cv::KeyPoint kp;
+
+			kp.pt = vMarkers[i][ii];
+			kp.angle = -1.f; // not used
+			kp.class_id = vMarkers[i].id; // keypoints for each marker share the same id
+			kp.size = vMarkers[i].ssize; // size of the marker in meters (not the correct use for this field!)
+
+			mvMarkers.push_back(kp);
+		}
+	}
+}
+
 
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
@@ -430,6 +457,45 @@ void Frame::UndistortKeyPoints()
         kp.pt.x=mat.at<float>(i,0);
         kp.pt.y=mat.at<float>(i,1);
         mvKeysUn[i]=kp;
+//        cout << "undistorted points" << kp.pt << endl;
+    }
+}
+
+void Frame::UndistortMarkerPoints()
+{
+	if(mvMarkers.empty())
+		return;
+
+    if(mDistCoef.at<float>(0)==0.0)
+    {
+        mvMarkersUn=mvMarkers;
+        return;
+    }
+
+    // Fill matrix with points
+    cv::Mat mat(M,2,CV_32F);
+    for(int i=0; i<M; i++)
+    {
+        mat.at<float>(i,0)=mvMarkers[i].pt.x;
+        mat.at<float>(i,1)=mvMarkers[i].pt.y;
+//        cout << "distorted" << mvMarkers[i].pt << endl;
+    }
+
+    // Undistort points
+    mat=mat.reshape(2);
+    cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
+    mat=mat.reshape(1);
+
+    // Fill undistorted marker point vector
+    mvMarkersUn.resize(M);
+    for(int i=0; i<M; i++)
+    {
+
+        cv::KeyPoint kp = mvMarkers[i];
+        kp.pt.x=mat.at<float>(i,0);
+        kp.pt.y=mat.at<float>(i,1);
+        mvMarkersUn[i]=kp;
+//        cout << "undistorted markers" << kp.pt << endl;
     }
 }
 

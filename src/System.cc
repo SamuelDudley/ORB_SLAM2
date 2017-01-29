@@ -215,7 +215,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
     return mpTracker->GrabImageRGBD(im,depthmap,timestamp);
 }
 
-cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot)
+cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot, vector<aruco::Marker> &vMarkers)
 {
 	cameraHasJumped = false;
     if(mSensor!=MONOCULAR)
@@ -293,7 +293,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, cv::M
     	mpLoopCloser->optimizerRan = false;
 
     }
-    return mpTracker->GrabImageMonocular(im,timestamp,mAPPoseNED,mIFrameTransRot);
+    return mpTracker->GrabImageMonocular(im,timestamp,mAPPoseNED,mIFrameTransRot,vMarkers);
 
 }
 

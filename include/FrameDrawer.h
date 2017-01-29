@@ -25,6 +25,8 @@
 #include "MapPoint.h"
 #include "Map.h"
 
+#include<aruco.h>
+
 #include<opencv2/core.hpp>
 #include<opencv2/features2d.hpp>
 
@@ -51,11 +53,16 @@ public:
 protected:
 
     void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
+    void DrawMarkers(cv::Mat &im);
 
+    aruco::CameraParameters camParam;
     // Info of the frame to be drawn
     cv::Mat mIm;
+    cv::Mat mK;
+    cv::Mat mDistCoef;
     int N;
     vector<cv::KeyPoint> mvCurrentKeys;
+    vector<aruco::Marker> vCurrentMarkers;
     vector<bool> mvbMap, mvbVO;
     bool mbOnlyTracking;
     int mnTracked, mnTrackedVO;

@@ -118,12 +118,39 @@ cv::Mat FrameDrawer::DrawFrame()
         }
     }
 
+
+    DrawMarkers(im);
     cv::Mat imWithInfo;
     DrawTextInfo(im,state, imWithInfo);
 
     return imWithInfo;
 }
 
+void FrameDrawer::DrawMarkers(cv::Mat &im)
+{
+	if (mK.empty() || mDistCoef.empty() || im.empty()) {
+		return;
+	}
+
+	camParam.setParams(mK, mDistCoef, im.size());
+
+	if (!camParam.isValid()) {
+		return;
+	} else {
+		// Loop through each detected marker
+		for (unsigned int i = 0; i < vCurrentMarkers.size(); i++) {
+			// If marker id was found, draw a green marker
+			vCurrentMarkers[i].draw(im, cv::Scalar(0, 255, 0), 2, false);
+				// If pose estimation was successful draw axis
+			if (vCurrentMarkers[i].ssize != -1) {
+				aruco::CvDrawingUtils::draw3dAxis(im, vCurrentMarkers[i], camParam);
+				// Otherwise draw a red marker
+			} else {
+				vCurrentMarkers[i].draw(im, cv::Scalar(0, 0, 255), 2, false);
+			}
+		}
+	}
+}
 
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
@@ -167,11 +194,14 @@ void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
-    mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
+    mvCurrentKeys = pTracker->mCurrentFrame.mvKeys;
+    mK = pTracker->mCurrentFrame.mK;
+    mDistCoef = pTracker->mCurrentFrame.mDistCoef;
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);
     mvbMap = vector<bool>(N,false);
     mbOnlyTracking = pTracker->mbOnlyTracking;
+    vCurrentMarkers = pTracker->mCurrentFrame.vMarkers;
 
 
     if(pTracker->mLastProcessedState==Tracking::NOT_INITIALIZED)

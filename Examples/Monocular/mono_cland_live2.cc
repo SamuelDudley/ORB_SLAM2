@@ -207,7 +207,7 @@ int main(int argc, char **argv)
     vector<float> eulerb(3);
     vector<float> eulertr(3);
 
-    // aruco setup
+
 
 
     cv::Mat cameraMatrix = (cv::Mat_<float>(3,3) << fSettings["Camera.fx"],0,fSettings["Camera.cx"],
@@ -216,6 +216,7 @@ int main(int argc, char **argv)
 
     cv::Mat distorsionCoeff  = (cv::Mat_<float>(4,1) << fSettings["Camera.k1"],fSettings["Camera.k2"],fSettings["Camera.p1"],fSettings["Camera.p2"]);
 
+    // aruco setup
     MarkerDetector MDetector;
     double MarkerSize = 0.287;
 	MDetector.setThresholdParams(7, 7);
@@ -224,74 +225,60 @@ int main(int argc, char **argv)
 	std::map<uint32_t,MarkerPoseTracker> MTracker; // use a map so that for each id, we use a different pose tracker
 	CameraParameters CamParam;
 	CamParam.setParams(cameraMatrix, distorsionCoeff, cv::Size(fSettings["Camera.width"],fSettings["Camera.height"]));
-	cout << "valid?: " << CamParam.isValid() << endl;
-//	cameraMatrix	3x3 matrix (fx 0 cx, 0 fy cy, 0 0 1)
-//	distorsionCoeff	4x1 matrix (k1,k2,p1,p2)
-//	size	image size
 
+	bool liveTracking = true;
+	bool captureImages = false;
 
-	// Sample for XIMEA OpenCV
 	xiAPIplusCameraOcv cam;
-	cam.OpenFirst();
-//	cam.SetDownsamplingType(XI_SKIPPING); //XI_BINNING
-//	cam.SetDownsampling(XI_DWN_2x2);
-	cam.StartAcquisition();
-	cam.EnableAutoExposureAutoGain();
-
-//	cam.EnableHDR();
-//	cam.EnableWhiteBalanceAuto();
-
-	cam.SetAutoExposureAutoGainExposurePriority(0.8f);
-//	cam.SetWidth(1024);
-//	cam.SetHeight(1024);
-
 	cv::Mat src;
-//	cv::Mat im;
-	int count = 0;
+	int frameCount = 0;
+
+	if (liveTracking) {
+		// XIMEA OpenCV
+		cam.OpenFirst();
+//		cam.SetDownsamplingType(XI_SKIPPING); //XI_BINNING
+//		cam.SetDownsampling(XI_DWN_2x2);
+		cam.StartAcquisition();
+		cam.EnableAutoExposureAutoGain();
+
+//		cam.EnableHDR();
+//		cam.EnableWhiteBalanceAuto();
+
+		cam.SetAutoExposureAutoGainExposurePriority(0.8f);
+	}
+
+
 	cv::Mat markerRot = cv::Mat::eye(3,3,CV_32F);
 
     for(int ni=0; ni<nImages; ni++)
     {
-        // Read image from file
-//        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
-
-    	src = cam.GetNextImageOcvMat();
-    	cv::resize(src, im, cv::Size(1024, 1024), 0, 0, cv::INTER_CUBIC); // resize to 1024x768 resolution
-
-//    	cv::imwrite( "/home/uas/Documents/ximea_cal/images/"+std::to_string(count)+".jpg", im );
-//    	count++;
-        // grab the image from the camera
-
+    	if (liveTracking) {
+    		src = cam.GetNextImageOcvMat();
+    		cv::resize(src, im, cv::Size(1024, 1024), 0, 0, cv::INTER_CUBIC); // resize image resolution
+    		cout << "FPS = " << cam.GetFrameRate() << endl;
+    		if (captureImages){
+    			cv::imwrite( "/home/uas/Documents/ximea_cal/images/"+std::to_string(frameCount)+".jpg", im );
+    			frameCount++;
+    		}
+    	} else {
+    		// Read image from file
+    		 im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+    	}
 
         // Detect markers
-		vector< Marker > Markers=MDetector.detect(im);
+		vector<Marker> Markers=MDetector.detect(im);
 		// Do pose estimation for each marker
 		for(auto & marker:Markers)
 			MTracker[marker.id].estimatePose(marker,CamParam,MarkerSize);
-		// If marker id is specified then look for just that id, otherwise lock on to closest marker
 
 		for (unsigned int i = 0; i < Markers.size(); i++) {
 			cv::Rodrigues(Markers[i].Rvec,markerRot);
-			cout << "Detected target id:" << Markers[i].id << endl << " Tvec:" << Markers[i].Tvec << endl <<"Rvec:" << markerRot << endl;
+			cout << "Detected target id:" << Markers[i].id << endl << "Tvec:" << Markers[i].Tvec << endl << "Rvec:" << markerRot << endl;
 			vector<float> eulertr = ORB_SLAM2::Converter::toEuler(ORB_SLAM2::Converter::toQuaternion(markerRot));
-			cout << "marker roll =" << eulertr[0]*radToDeg << ", pitch=" << eulertr[1]*radToDeg << ", yaw=" << eulertr[2]*radToDeg << endl;
+			cout << "roll: " << eulertr[0]*radToDeg << ", pitch: " << eulertr[1]*radToDeg << ", yaw: " << eulertr[2]*radToDeg << endl;
 			cout << "top_left: " << Markers[i][0] << "  top_right: " << Markers[i][1] <<  "  btm_right: " << Markers[i][2] << " btm_left: " << Markers[i][3] << endl << endl;
 		}
 
-		// Loop through each detected marker
-		for (unsigned int i = 0; i < Markers.size(); i++) {
-			// If marker id was found, draw a green marker
-			Markers[i].draw(im, cv::Scalar(0, 255, 0), 2, false);
-				// If pose estimation was successful, draw AR cube and distance
-			if (CamParam.isValid() && MarkerSize != -1){
-//				cout << Markers[i].id << ":" << Markers[i].Tvec.at<float>(0,0) << ":" << Markers[i].Tvec.at<float>(0,1) << ":" << Markers[i].Tvec.at<float>(0,2) << endl;
-				CvDrawingUtils::draw3dAxis(im, Markers[i], CamParam);
-
-			// Otherwise draw a red marker
-			} else {
-				Markers[i].draw(im, cv::Scalar(0, 0, 255), 2, false);
-			}
-		}
 
         // Supply optional inter-frame rotation and translation
         // TODO: pull this info from the Autopilot EKF and produce the matrix
@@ -307,7 +294,7 @@ int main(int argc, char **argv)
         float currentEast = vNEDPPositions[ni][1];
         float currentDown = vNEDPPositions[ni][2];
 
-        cout << "time= " << tframe <<" FPS= " << cam.GetFrameRate() << endl;
+        cout << "time= " << tframe << endl;
 //        cout << "AP roll 1      =" << currentRoll*radToDeg << ", pitch=" << currentPitch*radToDeg << ", yaw=" << currentYaw*radToDeg << endl;
 
         eulerAutopilotCurrent = {currentRoll, currentPitch, currentYaw}; // we apply negitive values as the orb world & camera frame use -ve rotation conventions
@@ -444,7 +431,9 @@ int main(int argc, char **argv)
 
         	if (SLAM.GetStepping()){
         		// if  in stepping mode each frame will require a key press before continuing
-        		cam.DisableAutoExposureAutoGain();
+        		if (liveTracking) {
+        			cam.DisableAutoExposureAutoGain();
+        		}
         		getchar();
         	}
 
@@ -452,7 +441,7 @@ int main(int argc, char **argv)
         }
 
         // Pass the image to the SLAM system
-		cameraPose = SLAM.TrackMonocular(im, tframe, mAPPoseNED, autopilotPoseCurrentCameraFrame);
+		cameraPose = SLAM.TrackMonocular(im, tframe, mAPPoseNED, autopilotPoseCurrentCameraFrame, Markers);
 		trackingStatus = SLAM.GetStatus();
 		cameraHasJumped = SLAM.CameraHasJumped();
 

@@ -236,7 +236,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &mAPPoseNED, cv::Mat &mIFrameTransRot, vector<aruco::Marker> &vMarkers)
 {
     mImGray = im;
 
@@ -257,10 +257,10 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
     	// initial frame
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot); //add optional EKF pose info
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot, vMarkers); //add optional EKF pose info
     else
     	// we are already running...
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot);
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mAPPoseNED,mIFrameTransRot, vMarkers);
 
     Track();
 

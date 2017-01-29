@@ -28,6 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include <aruco.h>
 
 #include <mutex>
 
@@ -173,6 +174,17 @@ public:
     const std::vector<float> mvuRight; // negative value for monocular points
     const std::vector<float> mvDepth; // negative value for monocular points
     const cv::Mat mDescriptors;
+
+    // Number of MarkerPoints
+    const int M;
+
+    // MarkerPoints
+    const std::vector<cv::KeyPoint> mvMarkers;
+    const std::vector<cv::KeyPoint> mvMarkersUn;
+
+    // Markers
+    const std::vector<aruco::Marker> vMarkers;
+
 
     //BoW
     DBoW2::BowVector mBowVec;
