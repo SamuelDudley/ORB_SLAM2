@@ -67,3 +67,21 @@ Viewer.ViewpointF: 2000
 #--------------------------------------------------------------------------------------------
 Marker.size: 0.287
 Marker.dictionary: "ARUCO_MIP_36h12"
+Marker.data:
+   -
+     name: takeoff
+     id: 100
+     dictionary: "ARUCO_MIP_36h12"
+     size: 0.287
+   -
+     name: nav
+     id: 101
+     dictionary: "ARUCO_MIP_36h12"
+     size: 0.287
+   -
+     name: land
+     id: 102
+     dictionary: "ARUCO_MIP_36h12"
+     size: 0.287
+     
+     

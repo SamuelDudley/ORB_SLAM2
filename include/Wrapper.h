@@ -27,14 +27,13 @@
 class Wrapper
 {
 	public:
-		void configure();
+		void configure(std::string strVocFile, std::string strConfigFile);
 		void initialize();
 		void shutdown();
 		void track();
 		int  getStatus();
 		void reset();
 		void getCurrentFrame();
-
 
 	public:
 		std::string msg;
@@ -60,7 +59,6 @@ class Wrapper
 		std::map<uint32_t,aruco::MarkerPoseTracker> markerTracker; // use a map so that for each id, we use a different pose tracker
 		vector<aruco::Marker> markers;
 		float markerSize;
-
 
 	private:
 		ORB_SLAM2::System* SLAM;
