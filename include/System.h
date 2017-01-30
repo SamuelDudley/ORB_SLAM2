@@ -126,6 +126,11 @@ public:
     	return mpTracker;
     }
 
+    FrameDrawer* GetFrameDrawer()
+    {
+    	return mpFrameDrawer;
+    }
+
 private:
 
     // Input sensor

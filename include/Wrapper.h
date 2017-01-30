@@ -24,31 +24,46 @@
 #include<boost/python.hpp>
 #include<xiApiPlusOcv.h>
 
-//ORB_SLAM2::System SLAM("./../Vocabulary/ORBvoc.bin","./../Examples/Monocular/XIMEA.yaml",ORB_SLAM2::System::MONOCULAR,true);
-// Create SLAM system. It initializes all system threads and gets ready to process frames.
-//ORB_SLAM2::System SLAM;
-
-
 class Wrapper
 {
 	public:
-		void set(std::string msg);
-		std::string greet();
 		void configure();
+		void initialize();
 		void shutdown();
 		void track();
+		int  getStatus();
+		void reset();
+		void getCurrentFrame();
+
 
 	public:
-//		ORB_SLAM2::System* SLAM;
 		std::string msg;
+		std::string vocabularyFilePath;
+		std::string configurationFilePath;
 
 		xiAPIplusCameraOcv cam;
 		cv::Mat src;
 		cv::Mat im;
 
+		cv::Mat currentFrame; //im with tracking visualization drawn on it
+		cv::FileStorage fsConfiguration;
+
 		const double tframe = 0.1;
-		vector<aruco::Marker> Markers;
+
 		cv::Mat autopilotPoseCurrent = cv::Mat::eye(4,4,CV_32F);
+
+		cv::Mat cameraMatrix;
+		cv::Mat distorsionCoeff;
+
+		aruco::CameraParameters cameraParameters;
+		aruco::MarkerDetector markerDetector;
+		std::map<uint32_t,aruco::MarkerPoseTracker> markerTracker; // use a map so that for each id, we use a different pose tracker
+		vector<aruco::Marker> markers;
+		float markerSize;
+
+
+	private:
+		ORB_SLAM2::System* SLAM;
 
 
 };
