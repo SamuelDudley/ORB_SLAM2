@@ -65,8 +65,8 @@ Viewer.ViewpointF: 2000
 #--------------------------------------------------------------------------------------------
 # Marker Parameters
 #--------------------------------------------------------------------------------------------
-Marker.size: 0.287
 Marker.dictionary: "ARUCO_MIP_36h12"
+Marker.track: 0 # attempt to track markers in each frame: 1 or 0
 Marker.data:
    -
      name: takeoff
@@ -74,14 +74,17 @@ Marker.data:
      dictionary: "ARUCO_MIP_36h12"
      size: 0.287
    -
-     name: nav
+     name: land
      id: 101
      dictionary: "ARUCO_MIP_36h12"
      size: 0.287
    -
-     name: land
+     name: nav
      id: 102
      dictionary: "ARUCO_MIP_36h12"
      size: 0.287
-     
-     
+   -
+     name: nav
+     id: 103
+     dictionary: "ARUCO_MIP_36h12"
+     size: 0.287

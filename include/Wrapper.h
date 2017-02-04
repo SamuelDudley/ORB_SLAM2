@@ -24,21 +24,59 @@
 #include<boost/python.hpp>
 #include<xiApiPlusOcv.h>
 
+
+struct MarkerData
+{
+	MarkerData() :
+    name(), dict(), id(), ssize(-1)
+	{
+	}
+
+    string name;
+    string dict;
+	int id;
+	float ssize;
+
+
+  	void read(const cv::FileNode& node)  //Read serialization for this class
+	{
+  		name = (string)node["name"];
+  		dict = (string)node["dictionary"];
+  		id = (int)node["id"];
+  		ssize = (float)node["size"];
+	}
+};
+
+static void read(const cv::FileNode& node, MarkerData& x, const MarkerData& default_value = MarkerData()){
+	if(node.empty())
+		x = default_value;
+	else
+		x.read(node);
+}
+
 class Wrapper
 {
 	public:
-		void configure(std::string strVocFile, std::string strConfigFile);
+		Wrapper(std::string strVocFile, std::string strConfigFile); // wrapper constructor
 		void initialize();
 		void shutdown();
+		void configure(std::string strConfigFile);
 		void track();
 		int  getStatus();
 		void reset();
 		void getCurrentFrame();
+		bool getTrackMarkers();
+		void setTrackMarkers(bool shouldTrackMarkers);
+		bool getIsInitialized();
 
 	public:
 		std::string msg;
 		std::string vocabularyFilePath;
 		std::string configurationFilePath;
+
+		bool isInitialized;
+		bool trackMarkers;
+
 
 		xiAPIplusCameraOcv cam;
 		cv::Mat src;
@@ -56,15 +94,17 @@ class Wrapper
 
 		aruco::CameraParameters cameraParameters;
 		aruco::MarkerDetector markerDetector;
-		std::map<uint32_t,aruco::MarkerPoseTracker> markerTracker; // use a map so that for each id, we use a different pose tracker
+		std::map<uint32_t, aruco::MarkerPoseTracker> markerTracker; // use a map so that for each id, we use a different pose tracker
 		vector<aruco::Marker> markers;
-		float markerSize;
+		std::map<uint32_t, MarkerData> markerConfigurations;
+
+	private:
+		bool initialized();
 
 	private:
 		ORB_SLAM2::System* SLAM;
 
 
 };
-
 
 #endif // WRAPPER_H
